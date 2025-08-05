@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<teamcity-plugin xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:noNamespaceSchemaLocation="urn:shemas-jetbrains-com:teamcity-plugin-v1-xml">
+  <info>
+    <name>team-notify</name>
+    <display-name>TeamNotify</display-name>
+    <version>1.0-SNAPSHOT</version>
+    <description>Sends build notifications to various services via webhooks.</description>
+    <vendor>
+      <name>V2</name>
+      <url>https://v2.sk</url>
+    </vendor>
+  </info>
+  <deployment>
+    <bean-name>spring-plugin.xml</bean-name>
+  </deployment>
+</teamcity-plugin>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd"
+       default-autowire="constructor">
+
+    <bean id="pluginDescriptor" class="jetbrains.buildServer.web.openapi.impl.PluginDescriptorImpl"/>
+    <bean id="webControllerManager" class="jetbrains.buildServer.web.openapi.WebControllerManager"/>
+    <bean id="sBuildServer" class="jetbrains.buildServer.serverSide.SBuildServer"/>
+    <bean id="projectSettingsManager" class="jetbrains.buildServer.serverSide.settings.ProjectSettingsManager"/>
+
+    <bean id="teamNotifySettingsFactory" class="sk.v2.plugins.teamnotify.settings.TeamNotifySettingsFactory"/>
+
+    <bean class="sk.v2.plugins.teamnotify.controllers.NotifierSettingsController"/>
+    <bean class="sk.v2.plugins.teamnotify.listeners.NotifierBuildServerListener"/>
+    <bean class="sk.v2.plugins.teamnotify.services.WebhookService"/>
+    <bean class="sk.v2.plugins.teamnotify.services.WebhookManager"/>
+    <bean class="sk.v2.plugins.teamnotify.services.BuildStallTracker"/>
+    <bean class="sk.v2.plugins.teamnotify.services.BuildDurationService"/>
+    <bean class="sk.v2.plugins.teamnotify.services.StalledBuildTimer"/>
+
+</beans>

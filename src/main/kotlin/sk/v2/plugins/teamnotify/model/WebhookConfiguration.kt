@@ -1,0 +1,19 @@
+package sk.v2.plugins.teamnotify.model
+
+enum class WebhookPlatform {
+    SLACK,
+    TEAMS,
+    DISCORD
+}
+
+data class WebhookConfiguration(
+    val url: String,
+    val platform: WebhookPlatform,
+    val onSuccess: Boolean = false,
+    val onFailure: Boolean = false,
+    val onStall: Boolean = false,
+    val buildLongerThan: Int? = null,
+    val buildLongerThanAverage: Boolean = false,
+    val onFirstFailure: Boolean = false,
+    val onBuildFixed: Boolean = false
+)
