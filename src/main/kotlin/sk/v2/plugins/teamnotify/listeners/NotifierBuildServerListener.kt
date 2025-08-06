@@ -2,6 +2,7 @@ package sk.v2.plugins.teamnotify.listeners
 
 import jetbrains.buildServer.serverSide.BuildServerAdapter
 import jetbrains.buildServer.serverSide.SBuildServer
+import jetbrains.buildServer.serverSide.SFinishedBuild
 import jetbrains.buildServer.serverSide.SRunningBuild
 import sk.v2.plugins.teamnotify.model.WebhookConfiguration
 import sk.v2.plugins.teamnotify.services.BuildDurationService
@@ -57,14 +58,16 @@ class NotifierBuildServerListener(
             }
 
             // On Build Fixed / On First Failure
-            val history = sBuildServer.history
-            // Get all finished builds for this build type, excluding the current one.
-            val previousFinishedBuild = history.getEntries(build.buildTypeId!!).filter { it.isFinished && it.buildId != build.buildId }.firstOrNull()
+            // Get the previous finished build for this build type
+            val buildType = build.buildType
+            val previousFinishedBuild = if (buildType != null) {
+                buildType.getHistory().firstOrNull { finishedBuild -> finishedBuild.buildId != build.buildId }
+            } else null
 
             if (previousFinishedBuild != null) {
                 println("Type of webhook.onBuildFixed: ${webhook.onBuildFixed::class.simpleName}")
                 println("Type of build.buildStatus.isSuccessful: ${build.buildStatus.isSuccessful::class.simpleName}")
-                println("Type of previousFinishedBuild.buildStatus.isSuccessful: ${previousFinishedBuild.buildStatus.isSuccessful::class.simpleName}")
+                println("Type of previousFinishedBuild status: ${previousFinishedBuild::class.simpleName}")
 
                 val currentBuildSuccessful = build.buildStatus.isSuccessful
                 val previousBuildSuccessful = previousFinishedBuild.buildStatus.isSuccessful

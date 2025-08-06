@@ -11,7 +11,8 @@
       <url>https://v2.sk</url>
     </vendor>
   </info>
-  <deployment>
-    <bean-name>spring-plugin.xml</bean-name>
-  </deployment>
+  <deployment use-separate-classloader="true" />
+  <parameters>
+    <parameter name="bean-definition-file">META-INF/spring-plugin.xml</parameter>
+  </parameters>
 </teamcity-plugin>
