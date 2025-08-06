@@ -6,7 +6,20 @@ plugins {
 }
 
 group = "sk.v2.plugins.teamnotify"
-version = "1.0-SNAPSHOT"
+
+// Read and increment build number
+val buildNumberFile = file("build.number")
+val buildNumber = if (buildNumberFile.exists()) {
+    val currentNumber = buildNumberFile.readText().trim().toInt()
+    val newNumber = currentNumber + 1
+    buildNumberFile.writeText(newNumber.toString())
+    newNumber
+} else {
+    buildNumberFile.writeText("1")
+    1
+}
+
+version = "1.0+$buildNumber-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -20,14 +33,13 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     implementation(kotlin("stdlib-jdk8"))
-    api("org.jetbrains.teamcity:server-api:2025.07")
-    api("org.jetbrains.teamcity:common-api:2025.07")
+    api("org.jetbrains.teamcity:server-api:2025.07") {
+        exclude(group = "org.springframework")
+    }
+    api("org.jetbrains.teamcity:common-api:2025.07") {
+        exclude(group = "org.springframework")
+    }
     implementation("com.google.code.gson:gson:2.10.1")
-    
-    // Spring dependencies required by our plugin
-    implementation("org.springframework:spring-beans:5.3.39")
-    implementation("org.springframework:spring-webmvc:5.3.39")
-    implementation("org.springframework:spring-context:5.3.39")
 }
 
 tasks.withType<KotlinCompile> {

@@ -8,15 +8,21 @@
     <bean id="webControllerManager" class="jetbrains.buildServer.web.openapi.WebControllerManager"/>
     <bean id="sBuildServer" class="jetbrains.buildServer.serverSide.SBuildServer"/>
     <bean id="projectSettingsManager" class="jetbrains.buildServer.serverSide.settings.ProjectSettingsManager"/>
+    <bean id="projectManager" class="jetbrains.buildServer.serverSide.ProjectManager"/>
+    <bean id="pagePlaces" class="jetbrains.buildServer.web.openapi.PagePlaces"/>
 
     <bean id="teamNotifySettingsFactory" class="sk.v2.plugins.teamnotify.settings.TeamNotifySettingsFactory"/>
 
-    <bean class="sk.v2.plugins.teamnotify.controllers.NotifierSettingsController"/>
-    <bean class="sk.v2.plugins.teamnotify.listeners.NotifierBuildServerListener"/>
+    <bean class="sk.v2.plugins.teamnotify.controllers.NotifierSettingsController" init-method="register"/>
+    <bean class="sk.v2.plugins.teamnotify.listeners.NotifierBuildServerListener" init-method="register"/>
     <bean class="sk.v2.plugins.teamnotify.services.WebhookService"/>
     <bean class="sk.v2.plugins.teamnotify.services.WebhookManager"/>
     <bean class="sk.v2.plugins.teamnotify.services.BuildStallTracker"/>
     <bean class="sk.v2.plugins.teamnotify.services.BuildDurationService"/>
     <bean class="sk.v2.plugins.teamnotify.services.StalledBuildTimer"/>
+    
+    <!-- UI Tab Extensions -->
+    <bean class="sk.v2.plugins.teamnotify.extensions.ProjectWebhookSettingsTab"/>
+    <bean class="sk.v2.plugins.teamnotify.extensions.BuildConfigurationWebhookSettingsTab"/>
 
 </beans>

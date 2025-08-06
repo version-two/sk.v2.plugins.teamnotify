@@ -4,14 +4,14 @@
   <info>
     <name>team-notify</name>
     <display-name>TeamNotify</display-name>
-    <version>1.0-SNAPSHOT</version>
+    <version>@Version@</version>
     <description>Sends build notifications to various services via webhooks.</description>
     <vendor>
-      <name>V2</name>
-      <url>https://v2.sk</url>
+      <name>Version Two s.r.o.</name>
+      <url>https://versiontwo.sk</url>
     </vendor>
   </info>
-  <deployment use-separate-classloader="true" />
+  <deployment use-separate-classloader="false" />
   <parameters>
     <parameter name="bean-definition-file">META-INF/spring-plugin.xml</parameter>
   </parameters>

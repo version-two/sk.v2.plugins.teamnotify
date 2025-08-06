@@ -26,7 +26,15 @@ class NotifierSettingsController(
 
     override fun doHandle(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
         val projectId = request.getParameter("projectId")
-        val project = sBuildServer.projectManager.findProjectByExternalId(projectId)
+        val buildTypeId = request.getParameter("buildTypeId")
+        
+        // Determine the project - either directly or via build configuration
+        val project = when {
+            projectId != null -> sBuildServer.projectManager.findProjectByExternalId(projectId)
+            buildTypeId != null -> sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)?.project
+            else -> null
+        }
+        
         val mv = ModelAndView(pluginDescriptor.getPluginResourcesPath("editNotifierSettings.jsp"))
 
         if (request.method == "POST" && project != null) {
@@ -53,11 +61,20 @@ class NotifierSettingsController(
                 webhookManager.saveWebhooks(project, existingWebhooks)
             }
             val message = if (action == "add") "Webhook added successfully!" else "Webhook deleted successfully!"
-            return ModelAndView("redirect:/notifier/settings.html?projectId=" + projectId + "&message=" + message)
+            val redirectUrl = if (buildTypeId != null) {
+                "redirect:/notifier/settings.html?buildTypeId=$buildTypeId&message=$message"
+            } else {
+                "redirect:/notifier/settings.html?projectId=$projectId&message=$message"
+            }
+            return ModelAndView(redirectUrl)
         }
 
         if (project != null) {
             mv.model["webhooks"] = webhookManager.getWebhooks(project)
+            mv.model["projectId"] = project.externalId
+            if (buildTypeId != null) {
+                mv.model["buildTypeId"] = buildTypeId
+            }
         }
         return mv
     }
