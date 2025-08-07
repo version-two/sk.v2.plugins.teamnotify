@@ -10,19 +10,25 @@
     <bean id="projectSettingsManager" class="jetbrains.buildServer.serverSide.settings.ProjectSettingsManager"/>
     <bean id="projectManager" class="jetbrains.buildServer.serverSide.ProjectManager"/>
     <bean id="pagePlaces" class="jetbrains.buildServer.web.openapi.PagePlaces"/>
+    <bean id="eventDispatcher" class="jetbrains.buildServer.util.EventDispatcher"/>
 
     <bean id="teamNotifySettingsFactory" class="sk.v2.plugins.teamnotify.settings.TeamNotifySettingsFactory"/>
 
-    <bean class="sk.v2.plugins.teamnotify.controllers.NotifierSettingsController" init-method="register"/>
-    <bean class="sk.v2.plugins.teamnotify.listeners.NotifierBuildServerListener" init-method="register"/>
-    <bean class="sk.v2.plugins.teamnotify.services.WebhookService"/>
-    <bean class="sk.v2.plugins.teamnotify.services.WebhookManager"/>
-    <bean class="sk.v2.plugins.teamnotify.services.BuildStallTracker"/>
-    <bean class="sk.v2.plugins.teamnotify.services.BuildDurationService"/>
-    <bean class="sk.v2.plugins.teamnotify.services.StalledBuildTimer"/>
+    <bean id="notifierSettingsController" class="sk.v2.plugins.teamnotify.controllers.NotifierSettingsController" init-method="register"/>
+    <bean id="teamNotifyAdminController" class="sk.v2.plugins.teamnotify.controllers.TeamNotifyAdminController" init-method="register"/>
+    <bean id="notifierBuildServerListener" class="sk.v2.plugins.teamnotify.listeners.NotifierBuildServerListener" init-method="register"/>
+    <bean id="webhookService" class="sk.v2.plugins.teamnotify.services.WebhookService"/>
+    <bean id="webhookManager" class="sk.v2.plugins.teamnotify.services.WebhookManager"/>
+    <bean id="buildStallTracker" class="sk.v2.plugins.teamnotify.services.BuildStallTracker"/>
+    <bean id="buildDurationService" class="sk.v2.plugins.teamnotify.services.BuildDurationService"/>
+    <bean id="stalledBuildTimer" class="sk.v2.plugins.teamnotify.services.StalledBuildTimer"/>
+    
+    <!-- Debug startup bean -->
+    <bean id="teamNotifyStartupActivity" class="sk.v2.plugins.teamnotify.TeamNotifyStartupActivity"/>
     
     <!-- UI Tab Extensions -->
-    <bean class="sk.v2.plugins.teamnotify.extensions.ProjectWebhookSettingsTab"/>
-    <bean class="sk.v2.plugins.teamnotify.extensions.BuildConfigurationWebhookSettingsTab"/>
+    <bean id="teamNotifyAdminPageExtension" class="sk.v2.plugins.teamnotify.extensions.TeamNotifyAdminPageExtension"/>
+    <bean id="projectWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.ProjectWebhookSettingsTab"/>
+    <bean id="buildConfigurationWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.BuildConfigurationWebhookSettingsTab"/>
 
 </beans>
