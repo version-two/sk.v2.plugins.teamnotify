@@ -1,12 +1,13 @@
 package sk.v2.plugins.teamnotify.payloads
 
-import jetbrains.buildServer.serverSide.SRunningBuild
-
 class TeamsPayloadGenerator : PayloadGenerator {
-    override fun generatePayload(build: SRunningBuild, message: String): String {
-        val buildTypeName = build.buildType?.name.orEmpty()
-        val buildNumber = build.buildNumber.orEmpty()
-        val buildExternalId = build.buildType?.externalId.orEmpty()
-        return """{"text": "[$buildTypeName] $message - Build $buildNumber (<$buildExternalId|Open in TeamCity>)"}"""
+    override fun generatePayload(ctx: NotificationContext): String {
+        val buildTypeName = ctx.buildTypeName.orEmpty()
+        val buildNumber = ctx.buildNumber.orEmpty()
+        val link = ctx.buildUrl ?: ""
+        val linkText = if (link.isNotEmpty()) " (<${link}|Open in TeamCity>)" else ""
+        val title = if (ctx.title.isNotBlank()) ctx.title else "TeamCity Build Notification"
+        val text = "[$buildTypeName] ${ctx.message} - Build $buildNumber$linkText"
+        return """{"text": "${title.replace("\"", "\\\"")}: ${text.replace("\"", "\\\"")}"}"""
     }
 }

@@ -9,9 +9,10 @@
          or SBuildServer here would cause Spring to fail to instantiate the context. -->
 
     <bean id="teamNotifySettingsFactory" class="sk.v2.plugins.teamnotify.settings.TeamNotifySettingsFactory"/>
+    <bean id="teamNotifySettingsRegistrar" class="sk.v2.plugins.teamnotify.settings.TeamNotifySettingsRegistrar" init-method="register"/>
 
-    <bean id="notifierSettingsController" class="sk.v2.plugins.teamnotify.controllers.NotifierSettingsController" init-method="register"/>
-    <bean id="teamNotifyAdminController" class="sk.v2.plugins.teamnotify.controllers.TeamNotifyAdminController" init-method="register"/>
+    <bean id="notifierSettingsController" class="sk.v2.plugins.teamnotify.controllers.NotifierSettingsController" init-method="register" depends-on="teamNotifySettingsRegistrar"/>
+    <bean id="teamNotifyAdminController" class="sk.v2.plugins.teamnotify.controllers.TeamNotifyAdminController" init-method="register" depends-on="teamNotifySettingsRegistrar"/>
     <bean id="notifierBuildServerListener" class="sk.v2.plugins.teamnotify.listeners.NotifierBuildServerListener" init-method="register"/>
     <bean id="webhookService" class="sk.v2.plugins.teamnotify.services.WebhookService"/>
     <bean id="webhookManager" class="sk.v2.plugins.teamnotify.services.WebhookManager"/>

@@ -21,6 +21,8 @@
       </div>
       <div class="field-group">
         <label for="conditions">Conditions:</label>
+        <input type="checkbox" id="onStart" name="onStart" />
+        <label for="onStart">On Start</label>
         <input type="checkbox" id="onSuccess" name="onSuccess" />
         <label for="onSuccess">On Success</label>
         <input type="checkbox" id="onFailure" name="onFailure" />
@@ -45,6 +47,7 @@
         <thead>
           <tr>
             <th>Webhook URL</th>
+            <th>Platform</th>
             <th>Conditions</th>
             <th></th>
           </tr>
@@ -55,6 +58,7 @@
               <td>${webhook.url}</td>
               <td>${webhook.platform}</td>
               <td>
+                <c:if test="${webhook.onStart}">On Start</c:if>
                 <c:if test="${webhook.onSuccess}">On Success</c:if>
                 <c:if test="${webhook.onFailure}">On Failure</c:if>
                 <c:if test="${webhook.onStall}">On Stall</c:if>

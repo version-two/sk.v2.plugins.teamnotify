@@ -24,6 +24,18 @@ class NotifierBuildServerListener(
 
     override fun buildStarted(build: SRunningBuild) {
         buildStallTracker.startTracking(build)
+        val project = build.buildType?.project ?: return
+        val webhooks = webhookManager.getWebhooks(project)
+        for (webhook in webhooks) {
+            if (webhook.onStart) {
+                webhookService.sendNotification(
+                    webhook.url,
+                    webhook.platform,
+                    build,
+                    "Build started: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}"
+                )
+            }
+        }
     }
 
     override fun buildFinished(build: SRunningBuild) {

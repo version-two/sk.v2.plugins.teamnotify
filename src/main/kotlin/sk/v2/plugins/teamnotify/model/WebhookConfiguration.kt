@@ -9,6 +9,7 @@ enum class WebhookPlatform {
 data class WebhookConfiguration(
     val url: String,
     val platform: WebhookPlatform,
+    val onStart: Boolean = false,
     val onSuccess: Boolean = false,
     val onFailure: Boolean = false,
     val onStall: Boolean = false,

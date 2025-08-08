@@ -51,6 +51,9 @@
               </td>
               <td class="value">
                 <div class="conditions">
+                  <c:if test="${webhookInfo.webhook.onStart}">
+                    <span class="condition start">▶ On Start</span><br/>
+                  </c:if>
                   <c:if test="${webhookInfo.webhook.onSuccess}">
                     <span class="condition success">✓ On Success</span><br/>
                   </c:if>
@@ -102,6 +105,10 @@
   .condition.success {
     background-color: #d4edda;
     color: #155724;
+  }
+  .condition.start {
+    background-color: #e2e3ff;
+    color: #383d7c;
   }
   .condition.failure {
     background-color: #f8d7da;

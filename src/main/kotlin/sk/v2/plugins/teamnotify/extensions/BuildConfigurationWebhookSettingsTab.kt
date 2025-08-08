@@ -9,15 +9,17 @@ import jetbrains.buildServer.web.openapi.buildType.BuildTypeTab
 import com.intellij.openapi.diagnostic.Logger
 import org.jetbrains.annotations.NotNull
 import sk.v2.plugins.teamnotify.DebugLogger
+import sk.v2.plugins.teamnotify.services.WebhookManager
 import javax.servlet.http.HttpServletRequest
 
 class BuildConfigurationWebhookSettingsTab(
     @NotNull webControllerManager: WebControllerManager,
     @NotNull projectManager: ProjectManager,
-    @NotNull private val pluginDescriptor: PluginDescriptor
+    @NotNull private val pluginDescriptor: PluginDescriptor,
+    @NotNull private val webhookManager: WebhookManager
 ) : BuildTypeTab(
     "webhookNotifier",
-    "Webhook Notifications",
+    "TeamNotify",
     webControllerManager,
     projectManager
 ) {
@@ -42,6 +44,12 @@ class BuildConfigurationWebhookSettingsTab(
         model["buildTypeId"] = buildType.externalId
         model["project"] = buildType.project
         model["buildType"] = buildType
+        try {
+            val hooks = webhookManager.getWebhooks(buildType.project)
+            model["webhooks"] = hooks
+        } catch (e: Exception) {
+            LOG.warn("Failed to load webhooks for buildType ${buildType.externalId}: ${e.message}")
+        }
     }
 
     override fun isAvailable(request: HttpServletRequest): Boolean {
