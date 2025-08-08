@@ -7,13 +7,14 @@ import jetbrains.buildServer.web.openapi.PluginDescriptor
 import jetbrains.buildServer.web.openapi.WebControllerManager
 import jetbrains.buildServer.web.openapi.project.ProjectTab
 import com.intellij.openapi.diagnostic.Logger
+import org.jetbrains.annotations.NotNull
 import sk.v2.plugins.teamnotify.DebugLogger
 import javax.servlet.http.HttpServletRequest
 
 class ProjectWebhookSettingsTab(
-    webControllerManager: WebControllerManager,
-    projectManager: ProjectManager,
-    private val pluginDescriptor: PluginDescriptor
+    @NotNull webControllerManager: WebControllerManager,
+    @NotNull projectManager: ProjectManager,
+    @NotNull private val pluginDescriptor: PluginDescriptor
 ) : ProjectTab(
     "webhookNotifier", 
     "Webhook Notifications",

@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+ 
 
 plugins {
     kotlin("jvm") version "1.9.22"
@@ -57,5 +58,5 @@ teamcity {
     }
 }
 
-
-
+// Packaging is SDK-compliant: teamcity-plugin.xml at ZIP root; Spring bean definition file
+// META-INF/build-server-plugin-<plugin>.xml inside the server JAR; web resources in buildServerResources/

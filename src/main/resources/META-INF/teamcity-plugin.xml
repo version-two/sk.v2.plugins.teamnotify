@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <teamcity-plugin xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                 xsi:noNamespaceSchemaLocation="urn:shemas-jetbrains-com:teamcity-plugin-v1-xml">
+                 xsi:noNamespaceSchemaLocation="urn:schemas-jetbrains-com:teamcity-plugin-v1-xml">
   <info>
     <name>team-notify</name>
     <display-name>TeamNotify</display-name>
@@ -12,7 +12,4 @@
     </vendor>
   </info>
   <deployment use-separate-classloader="false" />
-  <parameters>
-    <parameter name="bean-definition-file">META-INF/spring-plugin.xml</parameter>
-  </parameters>
 </teamcity-plugin>

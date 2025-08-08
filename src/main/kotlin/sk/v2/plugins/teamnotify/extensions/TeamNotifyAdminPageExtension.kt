@@ -6,12 +6,15 @@ import jetbrains.buildServer.web.openapi.PagePlaces
 import jetbrains.buildServer.web.openapi.PluginDescriptor
 import jetbrains.buildServer.web.openapi.PositionConstraint
 import com.intellij.openapi.diagnostic.Logger
+import org.jetbrains.annotations.NotNull
 import sk.v2.plugins.teamnotify.DebugLogger
+import sk.v2.plugins.teamnotify.services.WebhookManager
 import javax.servlet.http.HttpServletRequest
 
 class TeamNotifyAdminPageExtension(
-    pagePlaces: PagePlaces,
-    private val pluginDescriptor: PluginDescriptor
+    @NotNull pagePlaces: PagePlaces,
+    @NotNull private val pluginDescriptor: PluginDescriptor,
+    @NotNull private val webhookManager: WebhookManager
 ) : AdminPage(pagePlaces) {
     
     private val LOG = Logger.getInstance(TeamNotifyAdminPageExtension::class.java.name)
@@ -32,6 +35,14 @@ class TeamNotifyAdminPageExtension(
         val available = super.isAvailable(request)
         DebugLogger.log("TeamNotifyAdminPageExtension.isAvailable called, returning: $available")
         return available
+    }
+
+    override fun fillModel(model: MutableMap<String, Any>, request: HttpServletRequest) {
+        // Supply data expected by teamNotifyAdmin.jsp
+        val allWebhooks = webhookManager.getAllWebhooks()
+        model["allWebhooks"] = allWebhooks
+        model["totalWebhooks"] = allWebhooks.size
+        DebugLogger.log("TeamNotifyAdminPageExtension.fillModel populated model: totalWebhooks=${allWebhooks.size}")
     }
 
     override fun getGroup(): String {
