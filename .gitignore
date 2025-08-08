@@ -1,3 +1,35 @@
 /gradle-8.14.3/
 /build/
 /.output.txt
+
+# Gradle caches and outputs
+/.gradle/
+/build/
+
+# IDE settings
+/.idea/
+*.iml
+/.vscode/
+/.settings/
+/.project
+/.classpath
+
+# Local SDK docs (do not commit)
+/sdk-docs/
+
+# Temporary and cache directories
+/temp_jar_check/
+/tmp/
+/temp/
+*.log
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Tool-specific
+/.codeium/
+
+# Root-level plugin archives (build/distributions is already ignored via /build)
+/team-notify-*.zip
