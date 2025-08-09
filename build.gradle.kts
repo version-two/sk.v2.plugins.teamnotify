@@ -8,10 +8,10 @@ plugins {
 
 group = "sk.v2.plugins.teamnotify"
 
-// Read and increment build number
+// Auto-increment build number and compose semantic version + build metadata
 val buildNumberFile = file("build.number")
 val buildNumber = if (buildNumberFile.exists()) {
-    val currentNumber = buildNumberFile.readText().trim().toInt()
+    val currentNumber = buildNumberFile.readText().trim().toIntOrNull() ?: 0
     val newNumber = currentNumber + 1
     buildNumberFile.writeText(newNumber.toString())
     newNumber
@@ -20,7 +20,7 @@ val buildNumber = if (buildNumberFile.exists()) {
     1
 }
 
-version = "1.0+$buildNumber-SNAPSHOT"
+version = "1.1.0+$buildNumber-SNAPSHOT"
 
 repositories {
     mavenCentral()
