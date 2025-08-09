@@ -38,6 +38,19 @@ class DiscordPayloadGenerator : PayloadGenerator {
         if (buildUrl.isNotEmpty()) fields += fieldJson("Build", "[Open in TeamCity](${escape(buildUrl)})", false)
         if (artifactsUrl.isNotEmpty()) fields += fieldJson("Artifacts", "[Browse Artifacts](${escape(artifactsUrl)})", false)
 
+        if (ctx.changes.isNotEmpty()) {
+            val items = ctx.changes.take(3).map { ch ->
+                val who = (ch.user ?: "").ifBlank { "unknown" }
+                val msg = (ch.comment ?: "").replace("\n", " ").trim()
+                val shortMsg = if (msg.length > 80) msg.substring(0, 77) + "…" else msg
+                val rev = (ch.version ?: "").take(10)
+                val suffix = if (rev.isNotEmpty()) " (${rev})" else ""
+                "• ${escape(who)}: ${escape(shortMsg)}${escape(suffix)}"
+            }
+            val value = items.joinToString("\n")
+            fields += fieldJson("Changes", value, false)
+        }
+
         val description = escape(ctx.message)
 
         val embed = buildString {

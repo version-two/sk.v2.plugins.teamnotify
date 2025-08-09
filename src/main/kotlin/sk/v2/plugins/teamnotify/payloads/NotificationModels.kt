@@ -29,5 +29,12 @@ data class NotificationContext(
     val triggeredBy: String?,
     val agentName: String?,
     val startTime: Date?,
-    val finishTime: Date?
+    val finishTime: Date?,
+    val changes: List<ChangeSummary> = emptyList()
+)
+
+data class ChangeSummary(
+    val version: String?,
+    val user: String?,
+    val comment: String?
 )

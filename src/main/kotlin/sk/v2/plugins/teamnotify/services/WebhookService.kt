@@ -6,8 +6,10 @@ import sk.v2.plugins.teamnotify.payloads.DiscordPayloadGenerator
 import sk.v2.plugins.teamnotify.payloads.SlackPayloadGenerator
 import sk.v2.plugins.teamnotify.payloads.TeamsPayloadGenerator
 import sk.v2.plugins.teamnotify.payloads.NotificationContext
+import sk.v2.plugins.teamnotify.payloads.ChangeSummary
 import jetbrains.buildServer.serverSide.SRunningBuild
 import jetbrains.buildServer.serverSide.SBuildServer
+import jetbrains.buildServer.vcs.SVcsModification
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStream
@@ -48,7 +50,8 @@ class WebhookService(
             triggeredBy = build.triggeredBy?.user?.descriptiveName,
             agentName = build.agentName,
             startTime = build.startDate,
-            finishTime = build.finishDate
+            finishTime = build.finishDate,
+            changes = collectRecentChanges(build, 5)
         )
         sendNotification(url, platform, ctx)
     }
@@ -83,6 +86,25 @@ class WebhookService(
             val root = sBuildServer.rootUrl?.trimEnd('/') ?: return null
             "$root/viewLog.html?buildId=${'$'}{build.buildId}&tab=artifacts"
         } catch (_: Exception) { null }
+    }
+
+    private fun collectRecentChanges(build: SRunningBuild, limit: Int): List<ChangeSummary> {
+        return try {
+            val mods = try {
+                val list = build.containingChanges
+                if (list != null) list.toList() else emptyList()
+            } catch (_: Throwable) {
+                emptyList()
+            }
+            mods.take(limit).map { m ->
+                val version = try { m.version } catch (_: Throwable) { null }
+                val user = try { m.userName } catch (_: Throwable) { null }
+                val comment = try { m.description } catch (_: Throwable) { null }
+                ChangeSummary(version = version, user = user, comment = comment)
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private data class HttpResult(

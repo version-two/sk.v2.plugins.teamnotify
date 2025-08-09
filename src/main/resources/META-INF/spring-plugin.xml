@@ -20,9 +20,6 @@
     <bean id="buildDurationService" class="sk.v2.plugins.teamnotify.services.BuildDurationService"/>
     <bean id="stalledBuildTimer" class="sk.v2.plugins.teamnotify.services.StalledBuildTimer"/>
     
-    <!-- Debug startup bean -->
-    <bean id="teamNotifyStartupActivity" class="sk.v2.plugins.teamnotify.TeamNotifyStartupActivity"/>
-    
     <!-- UI Tab Extensions -->
     <bean id="teamNotifyAdminPageExtension" class="sk.v2.plugins.teamnotify.extensions.TeamNotifyAdminPageExtension"/>
     <bean id="projectWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.ProjectWebhookSettingsTab"/>
