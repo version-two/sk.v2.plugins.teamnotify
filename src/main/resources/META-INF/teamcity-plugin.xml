@@ -5,7 +5,7 @@
     <name>team-notify</name>
     <display-name>TeamNotify</display-name>
     <version>@Version@</version>
-    <description>Sends build notifications to various services via webhooks.</description>
+    <description>TeamNotify sends build notifications from TeamCity to Slack, Microsoft Teams, and Discord via webhooks. Configure multiple webhooks per Project or Build Configuration with rich triggers (Build Started, Success/Failure, First Failure, Fixed, Stalled, longer than a duration, longer than average). URLs are validated per platform. Adds a TeamNotify tab to Project and Build Configuration pages and an Administration &gt; TeamNotify overview.</description>
     <vendor>
       <name>Version Two s.r.o.</name>
       <url>https://versiontwo.sk</url>

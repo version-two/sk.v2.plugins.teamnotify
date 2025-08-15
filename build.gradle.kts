@@ -20,7 +20,7 @@ val buildNumber = if (buildNumberFile.exists()) {
     1
 }
 
-version = "1.1.0+$buildNumber-SNAPSHOT"
+version = "1.1.1+$buildNumber-SNAPSHOT"
 
 repositories {
     mavenCentral()
