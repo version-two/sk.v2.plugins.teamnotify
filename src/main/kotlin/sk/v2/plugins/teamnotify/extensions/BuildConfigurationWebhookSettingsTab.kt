@@ -34,8 +34,42 @@ class BuildConfigurationWebhookSettingsTab(
         model["buildTypeId"] = buildType.externalId
         model["project"] = buildType.project
         model["buildType"] = buildType
+        
+        // Check if versioned settings are enabled and in read-only mode
+        val project = buildType.project
+        val versionedSettingsMode = try {
+            val settingsMethod = project.javaClass.getMethod("isVersionedSettingsEnabled")
+            settingsMethod.invoke(project) as Boolean
+        } catch (e: Exception) {
+            false
+        }
+        
+        val isReadOnly = try {
+            if (versionedSettingsMode) {
+                val editingMethod = project.javaClass.getMethod("isVersionedSettingsAllowUIEditing")
+                !(editingMethod.invoke(project) as Boolean)
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+        
+        model["versionedSettingsEnabled"] = versionedSettingsMode
+        model["versionedSettingsReadOnly"] = isReadOnly
+        
         try {
-            val hooks = webhookManager.getWebhooks(buildType.project)
+            // Get webhooks specific to this build type (doesn't include parent webhooks for display)
+            val buildTypeKey = "teamnotify.settings.${buildType.buildTypeId}"
+            val hooks = try {
+                val settings = webhookManager.getWebhooksForEntity(null, buildType.externalId)
+                settings.filter { 
+                    // Only show webhooks directly configured for this build type, not inherited ones
+                    true // For now show all, but you could filter here if needed
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
             model["webhooks"] = hooks
         } catch (e: Exception) {
             LOG.warn("Failed to load webhooks for buildType ${buildType.externalId}: ${e.message}")

@@ -32,6 +32,29 @@ class ProjectWebhookSettingsTab(
     override fun fillModel(model: MutableMap<String, Any>, request: HttpServletRequest, project: SProject, user: SUser?) {
         model["projectId"] = project.externalId
         model["project"] = project
+        
+        // Check if versioned settings are enabled and in read-only mode
+        val versionedSettingsMode = try {
+            val settingsMethod = project.javaClass.getMethod("isVersionedSettingsEnabled")
+            settingsMethod.invoke(project) as Boolean
+        } catch (e: Exception) {
+            false
+        }
+        
+        val isReadOnly = try {
+            if (versionedSettingsMode) {
+                val editingMethod = project.javaClass.getMethod("isVersionedSettingsAllowUIEditing")
+                !(editingMethod.invoke(project) as Boolean)
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+        
+        model["versionedSettingsEnabled"] = versionedSettingsMode
+        model["versionedSettingsReadOnly"] = isReadOnly
+        
         try {
             val hooks = webhookManager.getWebhooks(project)
             model["webhooks"] = hooks

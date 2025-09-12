@@ -7,6 +7,7 @@ TeamNotify is a TeamCity plugin that sends highly customizable webhook notificat
 *   **Multi-Platform:** Slack, Microsoft Teams, Discord.
 *   **Per-scope settings:** Configure at the Project or Build Configuration level.
 *   **Multiple webhooks:** Define as many as needed per scope.
+*   **Versioned Settings Support:** Configure webhooks via Kotlin DSL in your `.teamcity/settings.kts` files.
 *   **Rich triggers:**
     *   Build Started
     *   Build Success
@@ -40,7 +41,24 @@ The packaged plugin `.zip` will be generated in `build/distributions/`, e.g. `te
 2.  Copy this `.zip` file to the `<TeamCity Data Directory>/plugins` directory on your TeamCity server.
 3.  Restart the TeamCity server.
 
+## 🔒 Security Best Practices
+
+### **IMPORTANT: Never Hardcode Webhook URLs**
+
+Webhook URLs are sensitive credentials that provide access to your communication channels. Follow these security practices:
+
+*   **Never commit webhook URLs directly in code** - Use TeamCity parameters instead
+*   **Use password-type parameters** for webhook URLs to mask them in the UI
+*   **Rotate webhook URLs periodically** as part of your security hygiene
+*   **Use different webhooks for different environments** (dev, staging, production)
+*   **Review version control** for accidentally committed URLs
+*   **Set appropriate permissions** on TeamCity parameters containing webhooks
+
+See the [DSL Usage Guide](DSL_USAGE.md) for detailed examples of secure webhook configuration.
+
 ## Configuration
+
+### Via TeamCity UI
 
 Once installed, configure webhooks either per Project or per Build Configuration via the TeamCity UI:
 
@@ -52,6 +70,36 @@ Once installed, configure webhooks either per Project or per Build Configuration
     *   **View/Delete Webhooks:** Review existing entries and remove any that are no longer needed.
 
 Additionally, an admin page is available under **Administration → TeamNotify** that lists all configured webhooks across projects.
+
+### Via Versioned Settings (Kotlin DSL)
+
+Configure webhooks in your `.teamcity/settings.kts` files:
+
+```kotlin
+import sk.v2.plugins.teamnotify.dsl.*
+
+project {
+    // Define secure parameter for webhook URL
+    params {
+        password("slack.webhook.url", "",
+            label = "Slack Webhook URL",
+            display = ParameterDisplay.HIDDEN)
+    }
+    
+    // Configure webhook using parameter
+    teamNotifyWebhook {
+        slack(param("slack.webhook.url"))  // Never hardcode the URL!
+        triggers {
+            lifecycle {
+                onFailure()
+                onSuccess()
+            }
+        }
+    }
+}
+```
+
+See [DSL_USAGE.md](DSL_USAGE.md) for comprehensive documentation and examples.
 
 ### URL validation
 
@@ -67,6 +115,8 @@ For safety, URLs are validated per platform. Expected formats include:
 
 *   `src/main/kotlin/sk/v2/plugins/teamnotify/`
     *   `controllers/` – UI controllers (`NotifierSettingsController`, `TeamNotifyAdminController`).
+    *   `dsl/` – Kotlin DSL support for versioned settings configuration.
+    *   `features/` – TeamCity feature descriptors for DSL integration.
     *   `listeners/` – Build event handling.
     *   `model/` – Configuration models.
     *   `payloads/` – Platform-specific payload generators (Slack/Teams/Discord).

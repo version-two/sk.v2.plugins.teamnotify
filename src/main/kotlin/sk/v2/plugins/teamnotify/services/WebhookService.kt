@@ -75,7 +75,7 @@ class WebhookService(
     private fun safeBuildUrl(build: SRunningBuild): String? {
         return try {
             val root = sBuildServer.rootUrl?.trimEnd('/') ?: return null
-            "$root/viewLog.html?buildId=${'$'}{build.buildId}"
+            "$root/viewLog.html?buildId=${build.buildId}"
         } catch (_: Exception) { null }
     }
 
@@ -84,7 +84,7 @@ class WebhookService(
     private fun safeArtifactsUrl(build: SRunningBuild): String? {
         return try {
             val root = sBuildServer.rootUrl?.trimEnd('/') ?: return null
-            "$root/viewLog.html?buildId=${'$'}{build.buildId}&tab=artifacts"
+            "$root/viewLog.html?buildId=${build.buildId}&tab=artifacts"
         } catch (_: Exception) { null }
     }
 

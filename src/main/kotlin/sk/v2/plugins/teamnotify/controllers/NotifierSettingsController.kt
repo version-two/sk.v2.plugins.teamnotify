@@ -26,10 +26,17 @@ class NotifierSettingsController(
     fun register(): Unit {
         webControllerManager.registerController("/notifier/settings.html", this)
         webControllerManager.registerController("/notifier/testWebhook.html", this)
+        webControllerManager.registerController("/notifier/api/webhooks.html", this)
     }
 
     override fun doHandle(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
         val path = request.requestURI ?: ""
+        
+        // Handle API requests for AJAX operations
+        if (path.endsWith("/notifier/api/webhooks.html")) {
+            return handleApiRequest(request, response)
+        }
+        
         if (path.endsWith("/notifier/testWebhook.html")) {
             val webhookUrl = request.getParameter("webhookUrl")?.trim()
             val platformRaw = request.getParameter("platform")?.trim()?.uppercase()
@@ -123,9 +130,9 @@ class NotifierSettingsController(
                         onFirstFailure = onFirstFailure,
                         onBuildFixed = onBuildFixed
                     )
-                    val existingWebhooks = webhookManager.getWebhooks(project).toMutableList()
+                    val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
                     existingWebhooks.add(newWebhook)
-                    webhookManager.saveWebhooks(project, existingWebhooks)
+                    webhookManager.saveWebhooksForEntity(projectId, buildTypeId, existingWebhooks)
 
                     val message = "Webhook added successfully!"
                     val back = preferredReturnUrl(request)
@@ -144,9 +151,9 @@ class NotifierSettingsController(
                 }
             } else if (action == "delete") {
                 val webhookUrlToDelete = request.getParameter("webhookUrlToDelete")
-                val existingWebhooks = webhookManager.getWebhooks(project).toMutableList()
+                val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
                 existingWebhooks.removeIf { it.url == webhookUrlToDelete }
-                webhookManager.saveWebhooks(project, existingWebhooks)
+                webhookManager.saveWebhooksForEntity(projectId, buildTypeId, existingWebhooks)
 
                 val message = "Webhook deleted successfully!"
                 val back = preferredReturnUrl(request)
@@ -166,7 +173,7 @@ class NotifierSettingsController(
         }
 
         if (project != null) {
-            mv.model["webhooks"] = webhookManager.getWebhooks(project)
+            mv.model["webhooks"] = webhookManager.getWebhooksForEntity(projectId, buildTypeId)
             mv.model["projectId"] = project.externalId
             if (buildTypeId != null) {
                 mv.model["buildTypeId"] = buildTypeId
@@ -194,5 +201,116 @@ class NotifierSettingsController(
             WebhookPlatform.TEAMS -> Regex("^(https://.*webhook\\.office\\.com/|https://outlook\\.office\\.com/).*").matches(url)
             WebhookPlatform.DISCORD -> Regex("^https://discord(?:app)?\\.com/api/webhooks/.*").matches(url)
         }
+    }
+    
+    private fun handleApiRequest(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
+        response.contentType = "application/json; charset=utf-8"
+        
+        val projectId = request.getParameter("projectId")
+        val buildTypeId = request.getParameter("buildTypeId")
+        
+        val project = when {
+            projectId != null -> sBuildServer.projectManager.findProjectByExternalId(projectId)
+            buildTypeId != null -> sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)?.project
+            else -> null
+        }
+        
+        if (project == null) {
+            response.status = 400
+            response.writer.write("""{"success":false,"error":"Project not found"}""")
+            return null
+        }
+        
+        when (request.method) {
+            "GET" -> {
+                // Get all webhooks for the entity (project or build type)
+                val webhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId)
+                val webhooksJson = webhooks.map { webhook ->
+                    """{
+                        "url": "${webhook.url.replace("\"", "\\\"")}",
+                        "platform": "${webhook.platform}",
+                        "onStart": ${webhook.onStart},
+                        "onSuccess": ${webhook.onSuccess},
+                        "onFailure": ${webhook.onFailure},
+                        "onStall": ${webhook.onStall},
+                        "buildLongerThan": ${webhook.buildLongerThan ?: "null"},
+                        "buildLongerThanAverage": ${webhook.buildLongerThanAverage},
+                        "onFirstFailure": ${webhook.onFirstFailure},
+                        "onBuildFixed": ${webhook.onBuildFixed}
+                    }"""
+                }.joinToString(",")
+                response.writer.write("""{"success":true,"webhooks":[${webhooksJson}]}""")
+            }
+            "POST" -> {
+                // Add a new webhook
+                val webhookUrl = request.getParameter("webhookUrl")?.trim()
+                val platformRaw = request.getParameter("platform")?.trim()?.uppercase()
+                val onSuccess = request.getParameter("onSuccess")?.toBoolean() ?: false
+                val onFailure = request.getParameter("onFailure")?.toBoolean() ?: false
+                val onStall = request.getParameter("onStall")?.toBoolean() ?: false
+                val buildLongerThan = request.getParameter("buildLongerThan")?.trim()?.takeIf { it.isNotEmpty() }?.toIntOrNull()
+                val buildLongerThanAverage = request.getParameter("buildLongerThanAverage")?.toBoolean() ?: false
+                val onFirstFailure = request.getParameter("onFirstFailure")?.toBoolean() ?: false
+                val onBuildFixed = request.getParameter("onBuildFixed")?.toBoolean() ?: false
+                val onStart = request.getParameter("onStart")?.toBoolean() ?: false
+                
+                val platform = try {
+                    WebhookPlatform.valueOf(platformRaw ?: "")
+                } catch (e: Exception) {
+                    null
+                }
+                
+                if (webhookUrl.isNullOrBlank() || platform == null || !isValidWebhookUrl(platform, webhookUrl)) {
+                    response.status = 400
+                    response.writer.write("""{"success":false,"error":"Invalid webhook URL or platform"}""")
+                    return null
+                }
+                
+                val newWebhook = WebhookConfiguration(
+                    url = webhookUrl,
+                    platform = platform,
+                    onStart = onStart,
+                    onSuccess = onSuccess,
+                    onFailure = onFailure,
+                    onStall = onStall,
+                    buildLongerThan = buildLongerThan,
+                    buildLongerThanAverage = buildLongerThanAverage,
+                    onFirstFailure = onFirstFailure,
+                    onBuildFixed = onBuildFixed
+                )
+                
+                val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
+                existingWebhooks.add(newWebhook)
+                webhookManager.saveWebhooksForEntity(projectId, buildTypeId, existingWebhooks)
+                
+                response.writer.write("""{"success":true,"message":"Webhook added successfully"}""")
+            }
+            "DELETE" -> {
+                // Delete a webhook
+                val webhookUrlToDelete = request.getParameter("webhookUrl")
+                if (webhookUrlToDelete.isNullOrBlank()) {
+                    response.status = 400
+                    response.writer.write("""{"success":false,"error":"Webhook URL is required"}""")
+                    return null
+                }
+                
+                val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
+                val removed = existingWebhooks.removeIf { it.url == webhookUrlToDelete }
+                
+                if (removed) {
+                    webhookManager.saveWebhooksForEntity(projectId, buildTypeId, existingWebhooks)
+                    response.writer.write("""{"success":true,"message":"Webhook deleted successfully"}""")
+                } else {
+                    response.status = 404
+                    response.writer.write("""{"success":false,"error":"Webhook not found"}""")
+                }
+            }
+            else -> {
+                response.status = 405
+                response.writer.write("""{"success":false,"error":"Method not allowed"}""")
+            }
+        }
+        
+        return null
     }
 }

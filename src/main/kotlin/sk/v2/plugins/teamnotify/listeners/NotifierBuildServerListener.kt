@@ -9,6 +9,7 @@ import sk.v2.plugins.teamnotify.services.BuildDurationService
 import sk.v2.plugins.teamnotify.services.BuildStallTracker
 import sk.v2.plugins.teamnotify.services.WebhookManager
 import sk.v2.plugins.teamnotify.services.WebhookService
+import org.springframework.beans.factory.DisposableBean
 
 class NotifierBuildServerListener(
     private val sBuildServer: SBuildServer,
@@ -16,16 +17,21 @@ class NotifierBuildServerListener(
     private val webhookManager: WebhookManager,
     private val buildStallTracker: BuildStallTracker,
     private val buildDurationService: BuildDurationService
-) : BuildServerAdapter() {
+) : BuildServerAdapter(), DisposableBean {
 
     fun register() {
         sBuildServer.addListener(this)
     }
+    
+    override fun destroy() {
+        sBuildServer.removeListener(this)
+    }
 
     override fun buildStarted(build: SRunningBuild) {
         buildStallTracker.startTracking(build)
-        val project = build.buildType?.project ?: return
-        val webhooks = webhookManager.getWebhooks(project)
+        val buildType = build.buildType ?: return
+        // Get webhooks from build configuration level and all parent projects
+        val webhooks = webhookManager.getWebhooksForBuildType(buildType)
         for (webhook in webhooks) {
             if (webhook.onStart) {
                 webhookService.sendNotification(
@@ -40,8 +46,9 @@ class NotifierBuildServerListener(
 
     override fun buildFinished(build: SRunningBuild) {
         buildStallTracker.stopTracking(build)
-        val project = build.buildType?.project ?: return
-        val webhooks = webhookManager.getWebhooks(project)
+        val buildType = build.buildType ?: return
+        // Get webhooks from build configuration level and all parent projects
+        val webhooks = webhookManager.getWebhooksForBuildType(buildType)
 
         for (webhook in webhooks) {
             // On Success
@@ -77,10 +84,6 @@ class NotifierBuildServerListener(
             } else null
 
             if (previousFinishedBuild != null) {
-                println("Type of webhook.onBuildFixed: ${webhook.onBuildFixed::class.simpleName}")
-                println("Type of build.buildStatus.isSuccessful: ${build.buildStatus.isSuccessful::class.simpleName}")
-                println("Type of previousFinishedBuild status: ${previousFinishedBuild::class.simpleName}")
-
                 val currentBuildSuccessful = build.buildStatus.isSuccessful
                 val previousBuildSuccessful = previousFinishedBuild.buildStatus.isSuccessful
 

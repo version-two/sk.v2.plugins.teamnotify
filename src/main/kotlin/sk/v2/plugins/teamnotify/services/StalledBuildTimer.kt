@@ -21,8 +21,9 @@ class StalledBuildTimer(
             override fun run() {
                 buildStallTracker.checkForStalledBuilds(300000) { buildId ->
                     sBuildServer.findRunningBuildById(buildId)?.let { build ->
-                        val project = build.buildType?.project ?: return@let
-                        val webhooks = webhookManager.getWebhooks(project)
+                        val buildType = build.buildType ?: return@let
+                        // Get webhooks from build type (includes inherited webhooks)
+                        val webhooks = webhookManager.getWebhooksForBuildType(buildType)
                         for (webhook: WebhookConfiguration in webhooks) {
                             if (webhook.onStall) {
                                 webhookService.sendNotification(webhook.url, webhook.platform, build, "Build stalled: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}")

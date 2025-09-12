@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gradle-8.14.3/bin/gradle clean:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

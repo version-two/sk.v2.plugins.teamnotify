@@ -1,0 +1,167 @@
+import jetbrains.buildServer.configs.kotlin.v2019_2.*
+import jetbrains.buildServer.configs.kotlin.v2019_2.buildSteps.gradle
+import jetbrains.buildServer.configs.kotlin.v2019_2.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.v2019_2.triggers.vcs
+import sk.v2.plugins.teamnotify.dsl.*
+
+/*
+ * Example TeamCity Kotlin DSL configuration with TeamNotify webhooks
+ * This demonstrates how to configure webhook notifications in versioned settings
+ * 
+ * SECURITY NOTE: This example uses TeamCity parameters for webhook URLs.
+ * NEVER hardcode webhook URLs directly in your settings files!
+ * Set these parameter values in the TeamCity UI, not in code.
+ */
+
+version = "2019.2"
+
+project {
+    // Define secure parameters for webhook URLs
+    // These values should be set in TeamCity UI, not here
+    params {
+        password("slack.webhook.critical", "",
+            label = "Slack Critical Alerts Webhook",
+            description = "Webhook URL for critical failure notifications",
+            display = ParameterDisplay.HIDDEN)
+        
+        password("teams.webhook.monitoring", "",
+            label = "Teams Monitoring Webhook",
+            description = "Webhook URL for all build monitoring",
+            display = ParameterDisplay.HIDDEN)
+        
+        password("discord.webhook.build", "",
+            label = "Discord Build Webhook",
+            description = "Webhook URL for build notifications",
+            display = ParameterDisplay.HIDDEN)
+            
+        password("slack.webhook.deploy", "",
+            label = "Slack Deploy Webhook",
+            description = "Webhook URL for deployment notifications",
+            display = ParameterDisplay.HIDDEN)
+            
+        password("teams.webhook.management", "",
+            label = "Teams Management Webhook",
+            description = "Webhook URL for management notifications",
+            display = ParameterDisplay.HIDDEN)
+    }
+    
+    // Project-level webhook that applies to all builds
+    teamNotifyWebhook {
+        // Send critical failures to Slack using parameter
+        slack(param("slack.webhook.critical"))  // URL from parameter, not hardcoded
+        
+        triggers {
+            statusChanges {
+                onFirstFailure()  // Alert on first failure
+                onFixed()         // Celebrate when fixed
+            }
+        }
+        
+        enabled = true
+    }
+    
+    // Additional webhook for monitoring
+    teamNotifyWebhook {
+        // Send all events to Teams for monitoring using parameter
+        teams(param("teams.webhook.monitoring"))  // URL from parameter
+        
+        triggers {
+            lifecycle {
+                onStart()
+                onSuccess()
+                onFailure()
+            }
+            
+            duration {
+                longerThanAverage()  // Alert on performance degradation
+            }
+        }
+    }
+
+    buildType(Build)
+    buildType(Deploy)
+}
+
+object Build : BuildType({
+    name = "Build Application"
+    
+    vcs {
+        root(DslContext.settingsRoot)
+    }
+    
+    steps {
+        gradle {
+            tasks = "clean build"
+            buildFile = "build.gradle.kts"
+        }
+    }
+    
+    triggers {
+        vcs {
+            branchFilter = "+:*"
+        }
+    }
+    
+    // Build-specific webhook for build failures
+    teamNotifyWebhook {
+        discord(param("discord.webhook.build"))  // URL from parameter
+        
+        triggers {
+            lifecycle {
+                onFailure()
+            }
+            
+            duration {
+                longerThan(600)  // Alert if build takes more than 10 minutes
+            }
+        }
+    }
+})
+
+object Deploy : BuildType({
+    name = "Deploy to Production"
+    
+    dependencies {
+        snapshot(Build) {
+            onDependencyFailure = FailureAction.FAIL_TO_START
+        }
+    }
+    
+    steps {
+        script {
+            name = "Deploy"
+            scriptContent = """
+                echo "Deploying to production..."
+                # Your deployment script here
+            """.trimIndent()
+        }
+    }
+    
+    // Deploy-specific webhooks for production notifications
+    teamNotifyWebhook {
+        // Primary notification channel
+        slack(param("slack.webhook.deploy"))  // URL from parameter
+        
+        triggers {
+            lifecycle {
+                onStart()     // Notify when deployment starts
+                onSuccess()   // Notify on successful deployment
+                onFailure()   // Alert on deployment failure
+            }
+        }
+    }
+    
+    teamNotifyWebhook {
+        // Secondary notification to management
+        teams(param("teams.webhook.management"))  // URL from parameter
+        
+        triggers {
+            lifecycle {
+                onSuccess()   // Only notify management on success
+                onFailure()   // And failures
+            }
+        }
+        
+        enabled = true
+    }
+})

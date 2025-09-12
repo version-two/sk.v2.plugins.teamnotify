@@ -24,5 +24,8 @@
     <bean id="teamNotifyAdminPageExtension" class="sk.v2.plugins.teamnotify.extensions.TeamNotifyAdminPageExtension"/>
     <bean id="projectWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.ProjectWebhookSettingsTab"/>
     <bean id="buildConfigurationWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.BuildConfigurationWebhookSettingsTab"/>
+    
+    <!-- Feature Descriptor for DSL Support -->
+    <bean id="teamNotifyWebhookFeature" class="sk.v2.plugins.teamnotify.features.TeamNotifyWebhookFeature"/>
 
 </beans>

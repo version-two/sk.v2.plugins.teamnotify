@@ -21,12 +21,20 @@ class BuildStallTracker {
 
     fun checkForStalledBuilds(stallTimeout: Long, action: (Long) -> Unit) {
         val now = System.currentTimeMillis()
+        val stalledBuilds = mutableListOf<Long>()
+        
+        // Collect stalled builds first
         for ((buildId, lastActivity) in runningBuilds) {
             if (now - lastActivity > stallTimeout) {
-                LOG.info("Build $buildId has stalled")
-                action(buildId)
-                runningBuilds.remove(buildId) // Prevent multiple notifications
+                stalledBuilds.add(buildId)
             }
+        }
+        
+        // Process and remove stalled builds
+        for (buildId in stalledBuilds) {
+            LOG.info("Build $buildId has stalled")
+            runningBuilds.remove(buildId) // Prevent multiple notifications
+            action(buildId)
         }
     }
 }
