@@ -26,7 +26,7 @@ class WebhookService(
     private val teamsPayloadGenerator = TeamsPayloadGenerator()
     private val discordPayloadGenerator = DiscordPayloadGenerator()
 
-    fun sendNotification(url: String, platform: WebhookPlatform, build: SRunningBuild, message: String) {
+    fun sendNotification(url: String, platform: WebhookPlatform, build: SRunningBuild, message: String, includeChanges: Boolean = true) {
         // Backward-compatible entrypoint: construct a minimal NotificationContext
         val ctx = NotificationContext(
             status = when {
@@ -51,7 +51,7 @@ class WebhookService(
             agentName = build.agentName,
             startTime = build.startDate,
             finishTime = build.finishDate,
-            changes = collectRecentChanges(build, 5)
+            changes = if (includeChanges) collectRecentChanges(build, 5) else emptyList()
         )
         sendNotification(url, platform, ctx)
     }

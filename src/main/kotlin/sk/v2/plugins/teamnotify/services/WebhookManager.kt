@@ -121,7 +121,8 @@ class WebhookManager(
             onFirstFailure = params["webhook.onFirstFailure"]?.toBoolean() ?: false,
             onBuildFixed = params["webhook.onBuildFixed"]?.toBoolean() ?: false,
             buildLongerThanAverage = params["webhook.buildLongerThanAverage"]?.toBoolean() ?: false,
-            buildLongerThan = params["webhook.buildLongerThan"]?.toIntOrNull()
+            buildLongerThan = params["webhook.buildLongerThan"]?.toIntOrNull(),
+            includeChanges = params["webhook.includeChanges"]?.toBoolean() ?: true
         )
     }
 

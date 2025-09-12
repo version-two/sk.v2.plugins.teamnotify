@@ -85,6 +85,11 @@ class TeamNotifyWebhook : ProjectFeature() {
     var buildLongerThan by intParameter("webhook.buildLongerThan")
     
     /**
+     * Include recent changes in notifications
+     */
+    var includeChanges by booleanParameter("webhook.includeChanges", trueValue = "true", falseValue = "false")
+    
+    /**
      * Enable/disable this webhook
      */
     var enabled by booleanParameter("webhook.enabled", trueValue = "true", falseValue = "false")

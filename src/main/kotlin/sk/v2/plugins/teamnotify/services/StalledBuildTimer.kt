@@ -26,7 +26,7 @@ class StalledBuildTimer(
                         val webhooks = webhookManager.getWebhooksForBuildType(buildType)
                         for (webhook: WebhookConfiguration in webhooks) {
                             if (webhook.onStall) {
-                                webhookService.sendNotification(webhook.url, webhook.platform, build, "Build stalled: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}")
+                                webhookService.sendNotification(webhook.url, webhook.platform, build, "Build stalled: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges)
                             }
                         }
                     }

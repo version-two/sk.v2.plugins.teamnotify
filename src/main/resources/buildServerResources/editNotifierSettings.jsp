@@ -236,6 +236,18 @@
             </div>
           </div>
         </div>
+        
+        <!-- Additional Options -->
+        <div class="tn-form-group">
+          <label class="tn-label">Additional Options</label>
+          <div class="tn-checkbox-group">
+            <label class="tn-checkbox-label">
+              <input type="checkbox" id="includeChanges" class="tn-checkbox" checked>
+              <span>Include recent changes in notifications</span>
+            </label>
+            <span class="tn-help-text">When enabled, notifications will include commit messages and author information</span>
+          </div>
+        </div>
       </div>
       
       <div class="tn-form-actions">
@@ -314,6 +326,9 @@
                   </c:if>
                   <c:if test="${webhook.buildLongerThanAverage}">
                     <span class="tn-trigger-tag tn-trigger-tag-info">&gt; Average</span>
+                  </c:if>
+                  <c:if test="${!webhook.includeChanges}">
+                    <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Changes</span>
                   </c:if>
                 </div>
               </div>
@@ -573,6 +588,7 @@
       onFailure: document.getElementById('onFailure').checked,
       onStall: document.getElementById('onStall').checked,
       buildLongerThanAverage: document.getElementById('buildLongerThanAverage').checked,
+      includeChanges: document.getElementById('includeChanges').checked,
       'tc-csrf-token': getCsrfToken()
     });
     
@@ -1164,6 +1180,26 @@
 .tn-help-text {
   color: #6b7280;
   font-size: 13px;
+}
+
+.tn-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tn-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tn-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
 /* Form Actions */

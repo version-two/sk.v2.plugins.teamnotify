@@ -82,6 +82,7 @@ class NotifierSettingsController(
                 val onFirstFailure = request.getParameter("onFirstFailure") != null
                 val onBuildFixed = request.getParameter("onBuildFixed") != null
                 val onStart = request.getParameter("onStart") != null
+                val includeChanges = request.getParameter("includeChanges") != null
 
                 val errors = mutableListOf<String>()
                 val platform = try {
@@ -128,7 +129,8 @@ class NotifierSettingsController(
                         buildLongerThan = buildLongerThan,
                         buildLongerThanAverage = buildLongerThanAverage,
                         onFirstFailure = onFirstFailure,
-                        onBuildFixed = onBuildFixed
+                        onBuildFixed = onBuildFixed,
+                        includeChanges = includeChanges
                     )
                     val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
                     existingWebhooks.add(newWebhook)
@@ -236,7 +238,8 @@ class NotifierSettingsController(
                         "buildLongerThan": ${webhook.buildLongerThan ?: "null"},
                         "buildLongerThanAverage": ${webhook.buildLongerThanAverage},
                         "onFirstFailure": ${webhook.onFirstFailure},
-                        "onBuildFixed": ${webhook.onBuildFixed}
+                        "onBuildFixed": ${webhook.onBuildFixed},
+                        "includeChanges": ${webhook.includeChanges}
                     }"""
                 }.joinToString(",")
                 response.writer.write("""{"success":true,"webhooks":[${webhooksJson}]}""")
@@ -253,6 +256,7 @@ class NotifierSettingsController(
                 val onFirstFailure = request.getParameter("onFirstFailure")?.toBoolean() ?: false
                 val onBuildFixed = request.getParameter("onBuildFixed")?.toBoolean() ?: false
                 val onStart = request.getParameter("onStart")?.toBoolean() ?: false
+                val includeChanges = request.getParameter("includeChanges")?.toBoolean() ?: true
                 
                 val platform = try {
                     WebhookPlatform.valueOf(platformRaw ?: "")
@@ -276,7 +280,8 @@ class NotifierSettingsController(
                     buildLongerThan = buildLongerThan,
                     buildLongerThanAverage = buildLongerThanAverage,
                     onFirstFailure = onFirstFailure,
-                    onBuildFixed = onBuildFixed
+                    onBuildFixed = onBuildFixed,
+                    includeChanges = includeChanges
                 )
                 
                 val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()

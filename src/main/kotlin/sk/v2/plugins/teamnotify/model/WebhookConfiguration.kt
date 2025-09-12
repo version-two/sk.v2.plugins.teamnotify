@@ -16,5 +16,7 @@ data class WebhookConfiguration(
     val buildLongerThan: Int? = null,
     val buildLongerThanAverage: Boolean = false,
     val onFirstFailure: Boolean = false,
-    val onBuildFixed: Boolean = false
+    val onBuildFixed: Boolean = false,
+    val includeChanges: Boolean = true,  // Default to true for backward compatibility
+    val enabled: Boolean = true
 )
