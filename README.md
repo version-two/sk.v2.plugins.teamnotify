@@ -1,6 +1,14 @@
 # TeamNotify - TeamCity Webhook Notifier Plugin
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/versiontwo)
+
 TeamNotify is a TeamCity plugin that sends highly customizable webhook notifications to Slack, Microsoft Teams, and Discord.
+
+## Support Development
+
+If you find TeamNotify useful in your CI/CD workflow, consider supporting its continued development. Your contributions help maintain the plugin, add new features, and ensure compatibility with future TeamCity versions.
+
+[☕ Buy us a coffee on Ko-fi](https://ko-fi.com/versiontwo)
 
 ## Features
 
