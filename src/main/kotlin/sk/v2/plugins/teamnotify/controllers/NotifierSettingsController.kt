@@ -4,6 +4,7 @@ import sk.v2.plugins.teamnotify.model.WebhookConfiguration
 import sk.v2.plugins.teamnotify.model.WebhookPlatform
 import sk.v2.plugins.teamnotify.services.WebhookManager
 import sk.v2.plugins.teamnotify.services.WebhookService
+import sk.v2.plugins.teamnotify.utils.BranchMatcher
 import jetbrains.buildServer.controllers.BaseController
 import jetbrains.buildServer.web.openapi.PluginDescriptor
 import jetbrains.buildServer.web.openapi.WebControllerManager
@@ -83,6 +84,7 @@ class NotifierSettingsController(
                 val onBuildFixed = request.getParameter("onBuildFixed") != null
                 val onStart = request.getParameter("onStart") != null
                 val includeChanges = request.getParameter("includeChanges") != null
+                val branchFilter = request.getParameter("branchFilter")?.trim()?.takeIf { it.isNotEmpty() }
 
                 val errors = mutableListOf<String>()
                 val platform = try {
@@ -105,6 +107,10 @@ class NotifierSettingsController(
 
                 if (buildLongerThan != null && buildLongerThan <= 0) {
                     errors += "Duration threshold must be a positive number of seconds."
+                }
+                
+                if (branchFilter != null && !BranchMatcher.isValidPattern(branchFilter)) {
+                    errors += "Invalid branch filter pattern."
                 }
 
                 if (errors.isNotEmpty()) {
@@ -130,7 +136,8 @@ class NotifierSettingsController(
                         buildLongerThanAverage = buildLongerThanAverage,
                         onFirstFailure = onFirstFailure,
                         onBuildFixed = onBuildFixed,
-                        includeChanges = includeChanges
+                        includeChanges = includeChanges,
+                        branchFilter = branchFilter
                     )
                     val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
                     existingWebhooks.add(newWebhook)
@@ -239,7 +246,8 @@ class NotifierSettingsController(
                         "buildLongerThanAverage": ${webhook.buildLongerThanAverage},
                         "onFirstFailure": ${webhook.onFirstFailure},
                         "onBuildFixed": ${webhook.onBuildFixed},
-                        "includeChanges": ${webhook.includeChanges}
+                        "includeChanges": ${webhook.includeChanges},
+                        "branchFilter": ${if (webhook.branchFilter != null) "\"${webhook.branchFilter.replace("\"", "\\\"")}\"" else "null"}
                     }"""
                 }.joinToString(",")
                 response.writer.write("""{"success":true,"webhooks":[${webhooksJson}]}""")
@@ -257,6 +265,7 @@ class NotifierSettingsController(
                 val onBuildFixed = request.getParameter("onBuildFixed")?.toBoolean() ?: false
                 val onStart = request.getParameter("onStart")?.toBoolean() ?: false
                 val includeChanges = request.getParameter("includeChanges")?.toBoolean() ?: true
+                val branchFilter = request.getParameter("branchFilter")?.trim()?.takeIf { it.isNotEmpty() }
                 
                 val platform = try {
                     WebhookPlatform.valueOf(platformRaw ?: "")
@@ -281,7 +290,8 @@ class NotifierSettingsController(
                     buildLongerThanAverage = buildLongerThanAverage,
                     onFirstFailure = onFirstFailure,
                     onBuildFixed = onBuildFixed,
-                    includeChanges = includeChanges
+                    includeChanges = includeChanges,
+                    branchFilter = branchFilter
                 )
                 
                 val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()

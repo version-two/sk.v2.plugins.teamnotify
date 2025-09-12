@@ -237,6 +237,22 @@
           </div>
         </div>
         
+        <!-- Branch Filter -->
+        <div class="tn-form-group">
+          <label class="tn-label" for="branchFilter">Branch Filter (Optional)</label>
+          <input type="text" 
+                 id="branchFilter" 
+                 class="tn-input" 
+                 placeholder="e.g., main, release/*, +develop, -feature/*">
+          <span class="tn-help-text">
+            Leave empty to notify for all branches. Use comma-separated patterns:<br>
+            • <code>main</code> - only main branch<br>
+            • <code>release/*</code> - all release branches<br>
+            • <code>+develop,-feature/*</code> - develop branch but not feature branches<br>
+            • Prefix with <code>-</code> to exclude, <code>+</code> or no prefix to include
+          </span>
+        </div>
+        
         <!-- Additional Options -->
         <div class="tn-form-group">
           <label class="tn-label">Additional Options</label>
@@ -329,6 +345,14 @@
                   </c:if>
                   <c:if test="${!webhook.includeChanges}">
                     <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Changes</span>
+                  </c:if>
+                  <c:if test="${not empty webhook.branchFilter}">
+                    <span class="tn-trigger-tag" style="background: #ddd6fe; color: #6b21a8;" title="${fn:escapeXml(webhook.branchFilter)}">
+                      <svg style="width: 12px; height: 12px; display: inline-block; margin-right: 2px;" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M7 3a1 1 0 100 2h3.5L9 6.5A1 1 0 1010.5 8L12 6.5V10a1 1 0 102 0V6.5L15.5 8a1 1 0 101.5-1.5L15.5 5H19a1 1 0 100-2h-3.5L14 1.5A1 1 0 0012.5 0L11 1.5V0a1 1 0 00-2 0v1.5L7.5 0A1 1 0 006 1.5L7.5 3H7z"/>
+                      </svg>
+                      Filtered
+                    </span>
                   </c:if>
                 </div>
               </div>
@@ -589,6 +613,7 @@
       onStall: document.getElementById('onStall').checked,
       buildLongerThanAverage: document.getElementById('buildLongerThanAverage').checked,
       includeChanges: document.getElementById('includeChanges').checked,
+      branchFilter: document.getElementById('branchFilter').value.trim(),
       'tc-csrf-token': getCsrfToken()
     });
     

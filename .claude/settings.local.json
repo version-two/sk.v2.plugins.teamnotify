@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gradle-8.14.3/bin/gradle clean:*)"
+      "Bash(gradle-8.14.3/bin/gradle clean:*)",
+      "Bash(./gradlew:*)",
+      "Bash(./gradle-8.14.3/bin/gradle clean:*)",
+      "Bash(./gradle-8.14.3/bin/gradle:*)",
+      "Bash(sed:*)",
+      "Bash(od:*)"
     ],
     "deny": [],
     "ask": []

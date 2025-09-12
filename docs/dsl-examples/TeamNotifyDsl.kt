@@ -90,6 +90,12 @@ class TeamNotifyWebhook : ProjectFeature() {
     var includeChanges by booleanParameter("webhook.includeChanges", trueValue = "true", falseValue = "false")
     
     /**
+     * Branch filter pattern (e.g., "main,release/*,-feature/*")
+     * Leave empty to notify for all branches
+     */
+    var branchFilter by stringParameter("webhook.branchFilter")
+    
+    /**
      * Enable/disable this webhook
      */
     var enabled by booleanParameter("webhook.enabled", trueValue = "true", falseValue = "false")

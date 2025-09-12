@@ -18,5 +18,6 @@ data class WebhookConfiguration(
     val onFirstFailure: Boolean = false,
     val onBuildFixed: Boolean = false,
     val includeChanges: Boolean = true,  // Default to true for backward compatibility
+    val branchFilter: String? = null,  // Branch filter pattern (e.g., "+:main,+:release/*,-:feature/*")
     val enabled: Boolean = true
 )

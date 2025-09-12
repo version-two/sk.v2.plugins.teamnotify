@@ -122,7 +122,8 @@ class WebhookManager(
             onBuildFixed = params["webhook.onBuildFixed"]?.toBoolean() ?: false,
             buildLongerThanAverage = params["webhook.buildLongerThanAverage"]?.toBoolean() ?: false,
             buildLongerThan = params["webhook.buildLongerThan"]?.toIntOrNull(),
-            includeChanges = params["webhook.includeChanges"]?.toBoolean() ?: true
+            includeChanges = params["webhook.includeChanges"]?.toBoolean() ?: true,
+            branchFilter = params["webhook.branchFilter"]
         )
     }
 
