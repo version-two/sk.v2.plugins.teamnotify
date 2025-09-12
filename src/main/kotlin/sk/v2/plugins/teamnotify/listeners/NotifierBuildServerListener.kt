@@ -34,7 +34,7 @@ class NotifierBuildServerListener(
         val branchName = build.branch?.displayName
         
         // Get webhooks from build configuration level and all parent projects
-        val webhooks = webhookManager.getWebhooksForBuildType(buildType)
+        val webhooks = webhookManager.getEffectiveWebhooksForBuildType(buildType)
         for (webhook in webhooks) {
             // Check branch filter
             if (!BranchMatcher.matches(branchName, webhook.branchFilter)) {
@@ -53,13 +53,38 @@ class NotifierBuildServerListener(
         }
     }
 
+    override fun buildInterrupted(build: SRunningBuild) {
+        buildStallTracker.stopTracking(build)
+        val buildType = build.buildType ?: return
+        val branchName = build.branch?.displayName
+        
+        // Get webhooks from build configuration level and all parent projects
+        val webhooks = webhookManager.getEffectiveWebhooksForBuildType(buildType)
+        for (webhook in webhooks) {
+            // Check branch filter
+            if (!BranchMatcher.matches(branchName, webhook.branchFilter)) {
+                continue
+            }
+            
+            if (webhook.onCancel) {
+                webhookService.sendNotification(
+                    webhook.url,
+                    webhook.platform,
+                    build,
+                    "Build cancelled: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}",
+                    webhook.includeChanges
+                )
+            }
+        }
+    }
+
     override fun buildFinished(build: SRunningBuild) {
         buildStallTracker.stopTracking(build)
         val buildType = build.buildType ?: return
         val branchName = build.branch?.displayName
         
         // Get webhooks from build configuration level and all parent projects
-        val webhooks = webhookManager.getWebhooksForBuildType(buildType)
+        val webhooks = webhookManager.getEffectiveWebhooksForBuildType(buildType)
 
         for (webhook in webhooks) {
             // Check branch filter

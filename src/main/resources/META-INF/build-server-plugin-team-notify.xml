@@ -9,21 +9,23 @@
          or SBuildServer here would cause Spring to fail to instantiate the context. -->
 
     <bean id="teamNotifySettingsFactory" class="sk.v2.plugins.teamnotify.settings.TeamNotifySettingsFactory"/>
+    <bean id="disabledWebhooksSettingsFactory" class="sk.v2.plugins.teamnotify.settings.DisabledWebhooksSettingsFactory"/>
     <bean id="teamNotifySettingsRegistrar" class="sk.v2.plugins.teamnotify.settings.TeamNotifySettingsRegistrar" init-method="register"/>
 
     <bean id="notifierSettingsController" class="sk.v2.plugins.teamnotify.controllers.NotifierSettingsController" init-method="register" depends-on="teamNotifySettingsRegistrar"/>
     <bean id="teamNotifyAdminController" class="sk.v2.plugins.teamnotify.controllers.TeamNotifyAdminController" init-method="register" depends-on="teamNotifySettingsRegistrar"/>
-    <bean id="notifierBuildServerListener" class="sk.v2.plugins.teamnotify.listeners.NotifierBuildServerListener" init-method="register"/>
-    <bean id="webhookService" class="sk.v2.plugins.teamnotify.services.WebhookService"/>
-    <bean id="webhookManager" class="sk.v2.plugins.teamnotify.services.WebhookManager"/>
+    <bean id="backupRestoreController" class="sk.v2.plugins.teamnotify.controllers.BackupRestoreController" init-method="register" depends-on="teamNotifySettingsRegistrar"/>
+    <bean id="webhookManager" class="sk.v2.plugins.teamnotify.services.WebhookManager" depends-on="teamNotifySettingsRegistrar"/>
+    <bean id="notifierBuildServerListener" class="sk.v2.plugins.teamnotify.listeners.NotifierBuildServerListener" init-method="register" depends-on="webhookManager"/>
+    <bean id="webhookService" class="sk.v2.plugins.teamnotify.services.WebhookService" depends-on="webhookManager"/>
     <bean id="buildStallTracker" class="sk.v2.plugins.teamnotify.services.BuildStallTracker"/>
     <bean id="buildDurationService" class="sk.v2.plugins.teamnotify.services.BuildDurationService"/>
     <bean id="stalledBuildTimer" class="sk.v2.plugins.teamnotify.services.StalledBuildTimer"/>
     
     <!-- UI Tab Extensions -->
-    <bean id="teamNotifyAdminPageExtension" class="sk.v2.plugins.teamnotify.extensions.TeamNotifyAdminPageExtension"/>
-    <bean id="projectWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.ProjectWebhookSettingsTab"/>
-    <bean id="buildConfigurationWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.BuildConfigurationWebhookSettingsTab"/>
+    <bean id="teamNotifyAdminPageExtension" class="sk.v2.plugins.teamnotify.extensions.TeamNotifyAdminPageExtension" depends-on="webhookManager"/>
+    <bean id="projectWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.ProjectWebhookSettingsTab" depends-on="webhookManager"/>
+    <bean id="buildConfigurationWebhookSettingsTab" class="sk.v2.plugins.teamnotify.extensions.BuildConfigurationWebhookSettingsTab" depends-on="webhookManager"/>
     
     <!-- Feature Descriptor for DSL Support -->
     <bean id="teamNotifyWebhookFeature" class="sk.v2.plugins.teamnotify.features.TeamNotifyWebhookFeature"/>

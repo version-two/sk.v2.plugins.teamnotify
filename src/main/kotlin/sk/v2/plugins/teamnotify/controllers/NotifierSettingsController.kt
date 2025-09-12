@@ -78,6 +78,7 @@ class NotifierSettingsController(
                 val onSuccess = request.getParameter("onSuccess") != null
                 val onFailure = request.getParameter("onFailure") != null
                 val onStall = request.getParameter("onStall") != null
+                val onCancel = request.getParameter("onCancel") != null
                 val buildLongerThan = request.getParameter("buildLongerThan")?.trim()?.takeIf { it.isNotEmpty() }?.toIntOrNull()
                 val buildLongerThanAverage = request.getParameter("buildLongerThanAverage") != null
                 val onFirstFailure = request.getParameter("onFirstFailure") != null
@@ -132,6 +133,7 @@ class NotifierSettingsController(
                         onSuccess = onSuccess,
                         onFailure = onFailure,
                         onStall = onStall,
+                        onCancel = onCancel,
                         buildLongerThan = buildLongerThan,
                         buildLongerThanAverage = buildLongerThanAverage,
                         onFirstFailure = onFirstFailure,
@@ -182,11 +184,18 @@ class NotifierSettingsController(
         }
 
         if (project != null) {
-            mv.model["webhooks"] = webhookManager.getWebhooksForEntity(projectId, buildTypeId)
-            mv.model["projectId"] = project.externalId
+            // If we're in a build configuration, get webhooks with source info
             if (buildTypeId != null) {
-                mv.model["buildTypeId"] = buildTypeId
+                val buildType = sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)
+                if (buildType != null) {
+                    mv.model["webhooksWithSource"] = webhookManager.getWebhooksWithSourceForBuildType(buildType)
+                    mv.model["buildTypeId"] = buildTypeId
+                }
+            } else {
+                // For projects, just get regular webhooks
+                mv.model["webhooks"] = webhookManager.getWebhooksForEntity(projectId, buildTypeId)
             }
+            mv.model["projectId"] = project.externalId
         }
         return mv
     }
@@ -218,15 +227,32 @@ class NotifierSettingsController(
         val projectId = request.getParameter("projectId")
         val buildTypeId = request.getParameter("buildTypeId")
         
-        val project = when {
-            projectId != null -> sBuildServer.projectManager.findProjectByExternalId(projectId)
-            buildTypeId != null -> sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)?.project
-            else -> null
+        // Validate that we have at least one valid entity
+        // Priority: buildTypeId > projectId (if both are provided, use buildTypeId)
+        val validEntity = when {
+            !buildTypeId.isNullOrBlank() -> {
+                // Try finding by external ID first, then by internal ID
+                val bt = sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)
+                    ?: sBuildServer.projectManager.findBuildTypeById(buildTypeId)
+                bt != null
+            }
+            !projectId.isNullOrBlank() -> {
+                // Try finding by external ID first, then by internal ID
+                val proj = sBuildServer.projectManager.findProjectByExternalId(projectId)
+                    ?: sBuildServer.projectManager.findProjectById(projectId)
+                proj != null
+            }
+            else -> false
         }
         
-        if (project == null) {
+        if (!validEntity) {
             response.status = 400
-            response.writer.write("""{"success":false,"error":"Project not found"}""")
+            val errorMsg = when {
+                !buildTypeId.isNullOrBlank() -> "Build Configuration not found: $buildTypeId"
+                !projectId.isNullOrBlank() -> "Project not found: $projectId"
+                else -> "Project or Build Configuration not found"
+            }
+            response.writer.write("""{"success":false,"error":"$errorMsg"}""")
             return null
         }
         
@@ -253,12 +279,93 @@ class NotifierSettingsController(
                 response.writer.write("""{"success":true,"webhooks":[${webhooksJson}]}""")
             }
             "POST" -> {
+                // Check if this is a delete action
+                val action = request.getParameter("action")
+                if (action == "delete") {
+                    // Delete a webhook
+                    val webhookUrlToDelete = request.getParameter("webhookUrl")
+                    if (webhookUrlToDelete.isNullOrBlank()) {
+                        response.status = 400
+                        response.writer.write("""{"success":false,"error":"Webhook URL is required"}""")
+                        return null
+                    }
+                    
+                    val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
+                    val removed = existingWebhooks.removeIf { it.url == webhookUrlToDelete }
+                    
+                    if (removed) {
+                        webhookManager.saveWebhooksForEntity(projectId, buildTypeId, existingWebhooks)
+                        response.writer.write("""{"success":true,"message":"Webhook deleted successfully"}""")
+                    } else {
+                        response.status = 404
+                        response.writer.write("""{"success":false,"error":"Webhook not found"}""")
+                    }
+                    return null
+                }
+                if (action == "toggle") {
+                    // Toggle webhook enable/disable
+                    val webhookUrl = request.getParameter("webhookUrl")
+                    if (webhookUrl.isNullOrBlank()) {
+                        response.status = 400
+                        response.writer.write("""{"success":false,"error":"Webhook URL is required"}""")
+                        return null
+                    }
+                    
+                    val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
+                    val webhookIndex = existingWebhooks.indexOfFirst { it.url == webhookUrl }
+                    
+                    if (webhookIndex != -1) {
+                        val oldWebhook = existingWebhooks[webhookIndex]
+                        val newWebhook = oldWebhook.copy(enabled = !oldWebhook.enabled)
+                        existingWebhooks[webhookIndex] = newWebhook
+                        webhookManager.saveWebhooksForEntity(projectId, buildTypeId, existingWebhooks)
+                        response.writer.write("""{"success":true,"enabled":${newWebhook.enabled},"message":"Webhook ${if (newWebhook.enabled) "enabled" else "disabled"} successfully"}""")
+                    } else {
+                        response.status = 404
+                        response.writer.write("""{"success":false,"error":"Webhook not found"}""")
+                    }
+                    return null
+                }
+                if (action == "toggleLocal" && buildTypeId != null) {
+                    // Toggle local disable for inherited webhook in build configuration
+                    val webhookUrl = request.getParameter("webhookUrl")
+                    if (webhookUrl.isNullOrBlank()) {
+                        response.status = 400
+                        response.writer.write("""{"success":false,"error":"Webhook URL is required"}""")
+                        return null
+                    }
+                    
+                    // Try finding by external ID first, then by internal ID
+                    val buildType = sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)
+                        ?: sBuildServer.projectManager.findBuildTypeById(buildTypeId)
+                    
+                    if (buildType != null) {
+                        val disabledUrls = webhookManager.getDisabledWebhooksForBuildType(buildType).toMutableSet()
+                        val isCurrentlyDisabled = disabledUrls.contains(webhookUrl)
+                        
+                        if (isCurrentlyDisabled) {
+                            disabledUrls.remove(webhookUrl)
+                        } else {
+                            disabledUrls.add(webhookUrl)
+                        }
+                        
+                        webhookManager.saveDisabledWebhooksForBuildType(buildType, disabledUrls)
+                        val newStatus = !isCurrentlyDisabled
+                        response.writer.write("""{"success":true,"locallyDisabled":$newStatus,"message":"Webhook ${if (newStatus) "locally disabled" else "locally enabled"} for this build configuration"}""")
+                    } else {
+                        response.status = 404
+                        response.writer.write("""{"success":false,"error":"Build configuration not found"}""")
+                    }
+                    return null
+                }
+                
                 // Add a new webhook
                 val webhookUrl = request.getParameter("webhookUrl")?.trim()
                 val platformRaw = request.getParameter("platform")?.trim()?.uppercase()
                 val onSuccess = request.getParameter("onSuccess")?.toBoolean() ?: false
                 val onFailure = request.getParameter("onFailure")?.toBoolean() ?: false
                 val onStall = request.getParameter("onStall")?.toBoolean() ?: false
+                val onCancel = request.getParameter("onCancel")?.toBoolean() ?: false
                 val buildLongerThan = request.getParameter("buildLongerThan")?.trim()?.takeIf { it.isNotEmpty() }?.toIntOrNull()
                 val buildLongerThanAverage = request.getParameter("buildLongerThanAverage")?.toBoolean() ?: false
                 val onFirstFailure = request.getParameter("onFirstFailure")?.toBoolean() ?: false
@@ -286,6 +393,7 @@ class NotifierSettingsController(
                     onSuccess = onSuccess,
                     onFailure = onFailure,
                     onStall = onStall,
+                    onCancel = onCancel,
                     buildLongerThan = buildLongerThan,
                     buildLongerThanAverage = buildLongerThanAverage,
                     onFirstFailure = onFirstFailure,
@@ -299,26 +407,6 @@ class NotifierSettingsController(
                 webhookManager.saveWebhooksForEntity(projectId, buildTypeId, existingWebhooks)
                 
                 response.writer.write("""{"success":true,"message":"Webhook added successfully"}""")
-            }
-            "DELETE" -> {
-                // Delete a webhook
-                val webhookUrlToDelete = request.getParameter("webhookUrl")
-                if (webhookUrlToDelete.isNullOrBlank()) {
-                    response.status = 400
-                    response.writer.write("""{"success":false,"error":"Webhook URL is required"}""")
-                    return null
-                }
-                
-                val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
-                val removed = existingWebhooks.removeIf { it.url == webhookUrlToDelete }
-                
-                if (removed) {
-                    webhookManager.saveWebhooksForEntity(projectId, buildTypeId, existingWebhooks)
-                    response.writer.write("""{"success":true,"message":"Webhook deleted successfully"}""")
-                } else {
-                    response.status = 404
-                    response.writer.write("""{"success":false,"error":"Webhook not found"}""")
-                }
             }
             else -> {
                 response.status = 405

@@ -1,6 +1,44 @@
 # Changelog
 
-## [1.1.1] - Latest Changes
+## [1.2.0] - 2025-09-13
+
+### 🎯 New Features
+
+#### Build Cancelled Trigger Support
+- **Added `onCancel` trigger** for notifications when builds are cancelled
+- **Platform-specific formatting:**
+  - Slack: `:no_entry_sign:` emoji with red color (#dc3545)
+  - Teams: `🚫` emoji with red theme color
+  - Discord: `🚫` emoji with red embed color (#E74C3C)
+- **Full integration across:**
+  - Web UI with dedicated checkbox and visual indicator
+  - Kotlin DSL support via `onCancel()` lifecycle trigger
+  - TeamCity listener for `buildInterrupted` events
+  - Proper serialization and persistence
+
+#### Enhanced Notification Titles
+- **Detailed context in every notification** with format: `[Project] - [Build Config] - Build #[Number] [Status]`
+- **Example:** `cloudweb.sk - Release - Build #73 Cancelled`
+- **Consistent emoji indicators** across all platforms:
+  - ▶️ Started (blue)
+  - ✅ Success (green)
+  - ❌ Failed (red)
+  - 🚫 Cancelled (red)
+  - ⚠️ Stalled (orange)
+  - 🎉 Fixed (purple)
+- **Makes notifications instantly identifiable** without opening TeamCity
+
+#### Improved Notification Content
+- **Individual artifact download links** - Shows actual artifact filenames as clickable download links
+  - Discord: Shows up to 5 artifact links inline
+  - Slack: Shows up to 3 artifact buttons (with "More..." if needed)
+  - Teams: Shows up to 3 artifact action buttons
+- **Smart artifact display** - Only shown for completed builds (success, failure, fixed)
+- **Fallback to artifact browser** when individual artifacts can't be determined
+- **Changes only in "Build Started"** notifications - reduces noise in other notifications
+- **Cleaner notifications** for cancelled, stalled, and in-progress builds
+
+## [1.1.1] - Previous Release
 
 ### 🎯 Major Features
 

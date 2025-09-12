@@ -21,6 +21,7 @@ If you find TeamNotify useful in your CI/CD workflow, consider supporting its co
     *   Build Success
     *   Build Failure
     *   Build Stalled
+    *   Build Cancelled
     *   Build taking longer than a specified duration
     *   Build taking longer than its average duration
     *   First Build Failure
@@ -41,7 +42,7 @@ This project uses the TeamCity Gradle plugin. From the project root, run:
 gradlew.bat clean serverPlugin
 ```
 
-The packaged plugin `.zip` will be generated in `build/distributions/`, e.g. `team-notify-1.1.0+<build>-SNAPSHOT.zip`.
+The packaged plugin `.zip` will be generated in `build/distributions/`, e.g. `team-notify-1.2.0+<build>-SNAPSHOT.zip`.
 
 ## Installing the Plugin
 

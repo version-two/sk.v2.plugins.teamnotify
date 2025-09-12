@@ -59,18 +59,9 @@ class BuildConfigurationWebhookSettingsTab(
         model["versionedSettingsReadOnly"] = isReadOnly
         
         try {
-            // Get webhooks specific to this build type (doesn't include parent webhooks for display)
-            val buildTypeKey = "teamnotify.settings.${buildType.buildTypeId}"
-            val hooks = try {
-                val settings = webhookManager.getWebhooksForEntity(null, buildType.externalId)
-                settings.filter { 
-                    // Only show webhooks directly configured for this build type, not inherited ones
-                    true // For now show all, but you could filter here if needed
-                }
-            } catch (e: Exception) {
-                emptyList()
-            }
-            model["webhooks"] = hooks
+            // Get all webhooks for this build type including inherited ones with source information
+            val webhooksWithSource = webhookManager.getWebhooksWithSourceForBuildType(buildType)
+            model["webhooksWithSource"] = webhooksWithSource
         } catch (e: Exception) {
             LOG.warn("Failed to load webhooks for buildType ${buildType.externalId}: ${e.message}")
         }

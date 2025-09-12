@@ -2,15 +2,22 @@ package sk.v2.plugins.teamnotify.payloads
 
 class SlackPayloadGenerator : PayloadGenerator {
     override fun generatePayload(ctx: NotificationContext): String {
+        val project = (ctx.projectName ?: "Unknown Project").trim()
+        val config = (ctx.buildTypeName ?: "Unknown Config").trim()
+        val buildNo = (ctx.buildNumber ?: "?").trim()
+        
+        val titlePrefix = "$project - $config - Build #$buildNo"
+        
         val title = when (ctx.status) {
-            NotificationStatus.STARTED -> ":arrow_forward: Build Started"
-            NotificationStatus.SUCCESS -> ":white_check_mark: Build Successful"
-            NotificationStatus.FAILURE -> ":x: Build Failed"
-            NotificationStatus.STALLED -> ":warning: Build Stalled"
-            NotificationStatus.FIXED -> ":tada: Build Fixed"
-            NotificationStatus.FIRST_FAILURE -> ":rotating_light: First Failure"
-            NotificationStatus.LONGER_THAN -> ":clock3: Long Build Duration"
-            NotificationStatus.LONGER_THAN_AVERAGE -> ":chart_with_upwards_trend: Longer Than Average"
+            NotificationStatus.STARTED -> ":arrow_forward: $titlePrefix Started"
+            NotificationStatus.SUCCESS -> ":white_check_mark: $titlePrefix Successful"
+            NotificationStatus.FAILURE -> ":x: $titlePrefix Failed"
+            NotificationStatus.STALLED -> ":warning: $titlePrefix Stalled"
+            NotificationStatus.CANCELLED -> ":no_entry_sign: $titlePrefix Cancelled"
+            NotificationStatus.FIXED -> ":tada: $titlePrefix Fixed"
+            NotificationStatus.FIRST_FAILURE -> ":rotating_light: $titlePrefix - First Failure"
+            NotificationStatus.LONGER_THAN -> ":clock3: $titlePrefix - Long Duration"
+            NotificationStatus.LONGER_THAN_AVERAGE -> ":chart_with_upwards_trend: $titlePrefix - Longer Than Average"
         }
 
         val color = when (ctx.status) {
@@ -18,14 +25,11 @@ class SlackPayloadGenerator : PayloadGenerator {
             NotificationStatus.SUCCESS -> "#2eb886"     // green
             NotificationStatus.FAILURE -> "#dc3545"     // red
             NotificationStatus.STALLED -> "#f48924"     // orange
+            NotificationStatus.CANCELLED -> "#dc3545"   // red - same as failure
             NotificationStatus.FIXED -> "#9b59b6"       // purple
             NotificationStatus.FIRST_FAILURE -> "#dc3545"
             NotificationStatus.LONGER_THAN, NotificationStatus.LONGER_THAN_AVERAGE -> "#e67e22" // yellow/orange
         }
-
-        val project = (ctx.projectName ?: "").trim()
-        val config = (ctx.buildTypeName ?: "").trim()
-        val buildNo = (ctx.buildNumber ?: "").trim()
         val triggeredBy = (ctx.triggeredBy ?: "").trim()
         val buildUrl = (ctx.buildUrl ?: "").trim()
         val artifactsUrl = (ctx.artifactsUrl ?: "").trim()
@@ -41,12 +45,34 @@ class SlackPayloadGenerator : PayloadGenerator {
         if (buildUrl.isNotEmpty()) {
             actions += actionJson("View Build", buildUrl, "primary")
         }
-        if (artifactsUrl.isNotEmpty()) {
-            actions += actionJson("Browse Artifacts", artifactsUrl, "default")
+        
+        // Only show artifacts for completed builds
+        val showArtifacts = ctx.status in listOf(
+            NotificationStatus.SUCCESS,
+            NotificationStatus.FIXED,
+            NotificationStatus.FAILURE,
+            NotificationStatus.FIRST_FAILURE
+        )
+        
+        // Show individual artifact buttons if available
+        if (showArtifacts) {
+            if (ctx.artifacts.isNotEmpty()) {
+                // Add individual artifact download buttons (limit to 3 for space)
+                ctx.artifacts.take(3).forEach { artifact ->
+                    actions += actionJson(artifact.name, artifact.downloadUrl, "default")
+                }
+                // If there are more artifacts, add a browse all button
+                if (ctx.artifacts.size > 3 && artifactsUrl.isNotEmpty()) {
+                    actions += actionJson("More artifacts...", artifactsUrl, "default")
+                }
+            } else if (artifactsUrl.isNotEmpty()) {
+                // Fallback to artifact browser button
+                actions += actionJson("Browse Artifacts", artifactsUrl, "default")
+            }
         }
 
-        // Build changes text
-        val changesText = if (ctx.changes.isNotEmpty()) {
+        // Build changes text - only for build started
+        val changesText = if (ctx.status == NotificationStatus.STARTED && ctx.changes.isNotEmpty()) {
             val items = ctx.changes.take(3).map { ch ->
                 val who = (ch.user ?: "").ifBlank { "unknown" }
                 val msg = (ch.comment ?: "").replace("\n", " ").trim()

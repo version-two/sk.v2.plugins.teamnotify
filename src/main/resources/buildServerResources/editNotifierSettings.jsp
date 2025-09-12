@@ -3,6 +3,9 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="bs" tagdir="/WEB-INF/tags" %>
 
+<!-- Toast Notification Container -->
+<div id="tn-toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+
 <div class="tn-container">
   <!-- Header Section -->
   <div class="tn-header">
@@ -202,6 +205,16 @@
             </label>
             
             <label class="tn-trigger">
+              <input type="checkbox" id="onCancel" class="tn-trigger-checkbox">
+              <div class="tn-trigger-card">
+                <svg class="tn-trigger-icon tn-trigger-cancel" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                <span>On Cancel</span>
+              </div>
+            </label>
+            
+            <label class="tn-trigger">
               <input type="checkbox" id="buildLongerThanAverage" class="tn-trigger-checkbox">
               <div class="tn-trigger-card">
                 <svg class="tn-trigger-icon tn-trigger-info" viewBox="0 0 20 20" fill="currentColor">
@@ -246,10 +259,10 @@
                  placeholder="e.g., main, release/*, +develop, -feature/*">
           <span class="tn-help-text">
             Leave empty to notify for all branches. Use comma-separated patterns:<br>
-            • <code>main</code> - only main branch<br>
-            • <code>release/*</code> - all release branches<br>
-            • <code>+develop,-feature/*</code> - develop branch but not feature branches<br>
-            • Prefix with <code>-</code> to exclude, <code>+</code> or no prefix to include
+            - <code>main</code> - only main branch<br>
+            - <code>release/*</code> - all release branches<br>
+            - <code>+develop,-feature/*</code> - develop branch but not feature branches<br>
+            - Prefix with <code>-</code> to exclude, <code>+</code> or no prefix to include
           </span>
         </div>
         
@@ -288,8 +301,165 @@
     <div class="tn-card-body">
       <div id="webhooksListContainer">
         <div class="tn-webhooks-list" id="webhooksList">
-          <c:forEach var="webhook" items="${webhooks}">
-            <div class="tn-webhook-item" data-webhook-url="${fn:escapeXml(webhook.url)}">
+          <c:choose>
+            <c:when test="${not empty webhooksWithSource}">
+              <!-- Build configuration: show webhooks with source information -->
+              <c:forEach var="webhookWithSource" items="${webhooksWithSource}">
+                <c:set var="webhook" value="${webhookWithSource.webhook}"/>
+                <c:set var="source" value="${webhookWithSource.source}"/>
+                <c:set var="isLocallyDisabled" value="${webhookWithSource.locallyDisabled}"/>
+                <c:set var="isInherited" value="${source == 'PROJECT' || source == 'DSL'}"/>
+                <c:set var="isEffectivelyDisabled" value="${isLocallyDisabled || !webhook.enabled}"/>
+                <div class="tn-webhook-item ${isEffectivelyDisabled ? 'tn-webhook-disabled' : ''} ${isInherited ? 'tn-webhook-inherited' : ''}" 
+                     data-webhook-url="${fn:escapeXml(webhook.url)}"
+                     data-webhook-source="${source}"
+                     data-locally-disabled="${isLocallyDisabled}">
+                  <div class="tn-webhook-platform">
+                    <c:choose>
+                      <c:when test="${webhook.platform == 'SLACK'}">
+                        <svg viewBox="0 0 24 24" class="tn-platform-icon-small">
+                          <path fill="#4A154B" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                        </svg>
+                      </c:when>
+                      <c:when test="${webhook.platform == 'TEAMS'}">
+                        <svg viewBox="0 0 24 24" class="tn-platform-icon-small">
+                          <path fill="#5059C9" d="M20.625 8.127q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832Q18 6.052 18 5.502q0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm0 10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832Q18 16.798 18 16.248q0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm-6.873-10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832-.205-.475-.205-1.025 0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm0 10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832-.205-.475-.205-1.025 0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zM20.625 0q1.138 0 2.125.433.988.433 1.713 1.158.725.725 1.158 1.713.433.987.433 2.125v10.746q0 1.138-.433 2.125-.433.988-1.158 1.713-.725.725-1.713 1.158-.987.433-2.125.433H9.879q-1.138 0-2.125-.433-.988-.433-1.713-1.158-.725-.725-1.158-1.713-.433-.987-.433-2.125V11h5.427v5.248q0 .356.239.595.239.239.595.239h9.914q.356 0 .595-.239.239-.239.239-.595V5.502q0-.356-.239-.595-.239-.239-.595-.239h-9.914q-.356 0-.595.239-.239.239-.239.595V11H4.5V5.502q0-1.138.433-2.125.433-.988 1.158-1.713Q6.816.939 7.804.506 8.79.073 9.929.073h10.696z"/>
+                        </svg>
+                      </c:when>
+                      <c:otherwise>
+                        <svg viewBox="0 0 24 24" class="tn-platform-icon-small">
+                          <path fill="#5865F2" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+                        </svg>
+                      </c:otherwise>
+                    </c:choose>
+                  </div>
+                  
+                  <div class="tn-webhook-info">
+                    <div class="tn-webhook-url">
+                      <c:set var="u" value="${webhook.url}"/>
+                      <c:set var="len" value="${fn:length(u)}"/>
+                      <c:choose>
+                        <c:when test="${len > 60}">
+                          ${fn:substring(u, 0, 40)}...${fn:substring(u, len - 15, len)}
+                        </c:when>
+                        <c:otherwise>
+                          ${u}
+                        </c:otherwise>
+                      </c:choose>
+                      <c:if test="${isInherited}">
+                        <span class="tn-webhook-source-badge">
+                          <c:choose>
+                            <c:when test="${source == 'PROJECT'}">Inherited from project</c:when>
+                            <c:when test="${source == 'DSL'}">From versioned settings</c:when>
+                          </c:choose>
+                        </span>
+                      </c:if>
+                      <c:if test="${isLocallyDisabled}">
+                        <span class="tn-webhook-local-badge">Locally disabled</span>
+                      </c:if>
+                    </div>
+                    
+                    <div class="tn-webhook-triggers">
+                      <c:if test="${webhook.onStart}">
+                        <span class="tn-trigger-tag">On Start</span>
+                      </c:if>
+                      <c:if test="${webhook.onSuccess}">
+                        <span class="tn-trigger-tag tn-trigger-tag-success">On Success</span>
+                      </c:if>
+                      <c:if test="${webhook.onFailure}">
+                        <span class="tn-trigger-tag tn-trigger-tag-failure">On Failure</span>
+                      </c:if>
+                      <c:if test="${webhook.onStall}">
+                        <span class="tn-trigger-tag tn-trigger-tag-warning">On Stall</span>
+                      </c:if>
+                      <c:if test="${webhook.buildLongerThan != null}">
+                        <span class="tn-trigger-tag tn-trigger-tag-info">&gt; ${webhook.buildLongerThan}s</span>
+                      </c:if>
+                      <c:if test="${webhook.buildLongerThanAverage}">
+                        <span class="tn-trigger-tag tn-trigger-tag-info">&gt; Average</span>
+                      </c:if>
+                      <c:if test="${!webhook.includeChanges}">
+                        <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Changes</span>
+                      </c:if>
+                      <c:if test="${not empty webhook.branchFilter}">
+                        <span class="tn-trigger-tag" style="background: #ddd6fe; color: #6b21a8;" title="${fn:escapeXml(webhook.branchFilter)}">
+                          <svg style="width: 12px; height: 12px; display: inline-block; margin-right: 2px;" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M7 3a1 1 0 100 2h3.5L9 6.5A1 1 0 1010.5 8L12 6.5V10a1 1 0 102 0V6.5L15.5 8a1 1 0 101.5-1.5L15.5 5H19a1 1 0 100-2h-3.5L14 1.5A1 1 0 0012.5 0L11 1.5V0a1 1 0 00-2 0v1.5L7.5 0A1 1 0 006 1.5L7.5 3H7z"/>
+                          </svg>
+                          Filtered
+                        </span>
+                      </c:if>
+                    </div>
+                  </div>
+                  
+                  <div class="tn-webhook-actions">
+                    <c:choose>
+                      <c:when test="${versionedSettingsReadOnly}">
+                        <button class="tn-webhook-toggle" disabled title="Cannot modify webhooks when versioned settings are enabled">
+                          <svg viewBox="0 0 20 20" fill="currentColor" style="opacity: 0.3;">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                          </svg>
+                        </button>
+                        <c:if test="${!isInherited}">
+                          <button class="tn-webhook-delete" disabled title="Cannot delete webhooks when versioned settings are enabled">
+                            <svg viewBox="0 0 20 20" fill="currentColor" style="opacity: 0.3;">
+                              <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
+                            </svg>
+                          </button>
+                        </c:if>
+                      </c:when>
+                      <c:otherwise>
+                        <c:choose>
+                          <c:when test="${isInherited}">
+                            <!-- For inherited webhooks, show local disable toggle -->
+                            <button class="tn-webhook-toggle ${isLocallyDisabled ? 'tn-toggle-disabled' : 'tn-toggle-enabled'}" 
+                                    onclick="toggleLocalWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}', ${isLocallyDisabled})"
+                                    title="${isLocallyDisabled ? 'Enable' : 'Disable'} for this build configuration only">
+                              <svg viewBox="0 0 20 20" fill="currentColor">
+                                <c:choose>
+                                  <c:when test="${!isLocallyDisabled}">
+                                    <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
+                                  </c:when>
+                                  <c:otherwise>
+                                    <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clip-rule="evenodd"/>
+                                  </c:otherwise>
+                                </c:choose>
+                              </svg>
+                            </button>
+                          </c:when>
+                          <c:otherwise>
+                            <!-- For build-type specific webhooks, show regular toggle and delete -->
+                            <button class="tn-webhook-toggle ${webhook.enabled ? 'tn-toggle-enabled' : 'tn-toggle-disabled'}" 
+                                    onclick="toggleWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}', ${webhook.enabled})"
+                                    title="${webhook.enabled ? 'Disable' : 'Enable'} webhook">
+                              <svg viewBox="0 0 20 20" fill="currentColor">
+                                <c:choose>
+                                  <c:when test="${webhook.enabled}">
+                                    <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
+                                  </c:when>
+                                  <c:otherwise>
+                                    <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clip-rule="evenodd"/>
+                                  </c:otherwise>
+                                </c:choose>
+                              </svg>
+                            </button>
+                            <button class="tn-webhook-delete" onclick="deleteWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}')">
+                              <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
+                              </svg>
+                            </button>
+                          </c:otherwise>
+                        </c:choose>
+                      </c:otherwise>
+                    </c:choose>
+                  </div>
+                </div>
+              </c:forEach>
+            </c:when>
+            <c:otherwise>
+              <!-- Project level: show regular webhooks -->
+              <c:forEach var="webhook" items="${webhooks}">
+            <div class="tn-webhook-item ${!webhook.enabled ? 'tn-webhook-disabled' : ''}" data-webhook-url="${fn:escapeXml(webhook.url)}">
               <div class="tn-webhook-platform">
                 <c:choose>
                   <c:when test="${webhook.platform == 'SLACK'}">
@@ -357,27 +527,50 @@
                 </div>
               </div>
               
-              <c:choose>
-                <c:when test="${versionedSettingsReadOnly}">
-                  <button class="tn-webhook-delete" disabled title="Cannot delete webhooks when versioned settings are enabled">
-                    <svg viewBox="0 0 20 20" fill="currentColor" style="opacity: 0.3;">
-                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
-                    </svg>
-                  </button>
-                </c:when>
-                <c:otherwise>
-                  <button class="tn-webhook-delete" onclick="deleteWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}')">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
-                    </svg>
-                  </button>
-                </c:otherwise>
-              </c:choose>
+              <div class="tn-webhook-actions">
+                <c:choose>
+                  <c:when test="${versionedSettingsReadOnly}">
+                    <button class="tn-webhook-toggle" disabled title="Cannot modify webhooks when versioned settings are enabled">
+                      <svg viewBox="0 0 20 20" fill="currentColor" style="opacity: 0.3;">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                      </svg>
+                    </button>
+                    <button class="tn-webhook-delete" disabled title="Cannot delete webhooks when versioned settings are enabled">
+                      <svg viewBox="0 0 20 20" fill="currentColor" style="opacity: 0.3;">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
+                      </svg>
+                    </button>
+                  </c:when>
+                  <c:otherwise>
+                    <button class="tn-webhook-toggle ${webhook.enabled ? 'tn-toggle-enabled' : 'tn-toggle-disabled'}" 
+                            onclick="toggleWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}', ${webhook.enabled})"
+                            title="${webhook.enabled ? 'Disable' : 'Enable'} webhook">
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <c:choose>
+                          <c:when test="${webhook.enabled}">
+                            <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/>
+                          </c:when>
+                          <c:otherwise>
+                            <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clip-rule="evenodd"/>
+                          </c:otherwise>
+                        </c:choose>
+                      </svg>
+                    </button>
+                    <button class="tn-webhook-delete" onclick="deleteWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}')">
+                      <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
+                      </svg>
+                    </button>
+                  </c:otherwise>
+                </c:choose>
+              </div>
             </div>
           </c:forEach>
+            </c:otherwise>
+          </c:choose>
         </div>
         
-        <div id="emptyState" class="tn-empty-state" style="${not empty webhooks ? 'display:none;' : ''}">
+        <div id="emptyState" class="tn-empty-state" style="${(not empty webhooks or not empty webhooksWithSource) ? 'display:none;' : ''}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
             <path d="M13 16h-1v-4h1m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
@@ -444,7 +637,7 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/axios@0.27.2/dist/axios.min.js"></script>
+<!-- Using native fetch API instead of external axios -->
 <script>
 (function() {
   // DOM Elements
@@ -528,6 +721,67 @@
     }
   }
 
+  // Toast Notification System
+  function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('tn-toast-container');
+    const toast = document.createElement('div');
+    
+    // Set styles based on type
+    const styles = {
+      success: 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;',
+      error: 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;',
+      warning: 'background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white;',
+      info: 'background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white;'
+    };
+    
+    toast.style.cssText = `
+      ${styles[type] || styles.info}
+      padding: 16px 24px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease-out;
+      position: relative;
+      min-width: 300px;
+      max-width: 500px;
+    `.replace(/\n/g, '');
+    
+    // Add icon based on type
+    const icons = {
+      success: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>',
+      error: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>',
+      warning: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>',
+      info: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
+    };
+    
+    toast.innerHTML = (icons[type] || icons.info) + 
+      '<span style="flex: 1;">' + message + '</span>' +
+      '<button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; padding: 4px;">' +
+        '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>' +
+      '</button>';
+    
+    toastContainer.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease-in';
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
+  
+  // Add CSS animations
+  if (!document.getElementById('tn-toast-styles')) {
+    const style = document.createElement('style');
+    style.id = 'tn-toast-styles';
+    style.textContent = '@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }';
+    document.head.appendChild(style);
+  }
+  
   // Messages
   function showMessage(message, isError) {
     const area = isError ? errorArea : messageArea;
@@ -554,24 +808,25 @@
     testResult.textContent = 'Testing connection...';
     
     try {
-      const response = await axios.post('<c:url value="/notifier/testWebhook.html"/>', 
-        new URLSearchParams({
+      const response = await fetch('<c:url value="/notifier/testWebhook.html"/>', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-TC-CSRF-Token': getCsrfToken()
+        },
+        body: new URLSearchParams({
           platform: platformSelect.value,
           webhookUrl: urlEl.value.trim(),
           'tc-csrf-token': getCsrfToken()
-        }), {
-          headers: {
-            'X-TC-CSRF-Token': getCsrfToken()
-          }
-        }
-      );
+        })
+      }).then(r => r.json());
       
-      if (response.data.success) {
+      if (response.success) {
         testResult.className = 'tn-test-result tn-test-success';
         testResult.textContent = 'Connection successful!';
       } else {
         testResult.className = 'tn-test-result tn-test-error';
-        testResult.textContent = 'Connection failed: ' + (response.data.message || 'Unknown error');
+        testResult.textContent = 'Connection failed: ' + (response.message || 'Unknown error');
       }
     } catch (error) {
       testResult.className = 'tn-test-result tn-test-error';
@@ -596,7 +851,7 @@
     const hasSelectedTrigger = triggers.some(id => document.getElementById(id).checked);
     
     if (!hasSelectedTrigger) {
-      showMessage('Please select at least one trigger condition', true);
+      showToast('Please select at least one trigger condition', 'warning');
       return;
     }
     
@@ -604,42 +859,50 @@
     addBtn.innerHTML = '<span class="tn-spinner"></span> Adding...';
     
     const params = new URLSearchParams({
-      projectId: document.getElementById('projectId').value,
       platform: platformSelect.value,
       webhookUrl: urlEl.value.trim(),
       onStart: document.getElementById('onStart').checked,
       onSuccess: document.getElementById('onSuccess').checked,
       onFailure: document.getElementById('onFailure').checked,
       onStall: document.getElementById('onStall').checked,
+      onCancel: document.getElementById('onCancel').checked,
       buildLongerThanAverage: document.getElementById('buildLongerThanAverage').checked,
       includeChanges: document.getElementById('includeChanges').checked,
       branchFilter: document.getElementById('branchFilter').value.trim(),
       'tc-csrf-token': getCsrfToken()
     });
     
+    // Only set ONE of projectId or buildTypeId, not both
     const buildTypeId = document.getElementById('buildTypeId')?.value;
-    if (buildTypeId) params.set('buildTypeId', buildTypeId);
+    if (buildTypeId) {
+      params.set('buildTypeId', buildTypeId);
+    } else {
+      params.set('projectId', document.getElementById('projectId').value);
+    }
     
     if (useThreshold.checked && thresholdInput.value) {
       params.set('buildLongerThan', thresholdInput.value);
     }
     
     try {
-      const response = await axios.post('<c:url value="/notifier/api/webhooks.html"/>', params, {
+      const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>', {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
           'X-TC-CSRF-Token': getCsrfToken()
-        }
-      });
+        },
+        body: params
+      }).then(r => r.json());
       
-      if (response.data.success) {
-        showMessage('Webhook added successfully!', false);
+      if (response.success) {
+        showToast('Webhook added successfully!', 'success');
         refreshWebhooksList();
         resetForm();
       } else {
-        showMessage('Failed to add webhook: ' + (response.data.error || 'Unknown error'), true);
+        showToast('Failed to add webhook: ' + (response.error || 'Unknown error'), 'error');
       }
     } catch (error) {
-      showMessage('Error adding webhook: ' + error.message, true);
+      showToast('Error adding webhook: ' + error.message, 'error');
     } finally {
       addBtn.disabled = false;
       addBtn.innerHTML = '<svg class="tn-btn-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg> Add Webhook';
@@ -651,46 +914,170 @@
     if (!confirm('Are you sure you want to delete this webhook?')) return;
     
     const params = new URLSearchParams({
-      projectId: document.getElementById('projectId').value,
+      webhookUrl: webhookUrl,
+      'tc-csrf-token': getCsrfToken()
+    });
+    
+    // Only set ONE of projectId or buildTypeId, not both
+    const buildTypeId = document.getElementById('buildTypeId')?.value;
+    if (buildTypeId) {
+      params.set('buildTypeId', buildTypeId);
+    } else {
+      params.set('projectId', document.getElementById('projectId').value);
+    }
+    
+    // Add action=delete to params for POST request
+    params.set('action', 'delete');
+    
+    try {
+      const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-TC-CSRF-Token': getCsrfToken()
+        },
+        body: params
+      });
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        showToast('Server error: Invalid response format', 'error');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        showToast('Webhook deleted successfully!', 'success');
+        refreshWebhooksList();
+      } else {
+        showToast('Failed to delete webhook: ' + (data.error || 'Unknown error'), 'error');
+      }
+    } catch (error) {
+      showToast('Error deleting webhook: ' + error.message, 'error');
+    }
+  }
+  
+  // Toggle Webhook Enable/Disable
+  window.toggleWebhook = async function(webhookUrl, currentStatus) {
+    const params = new URLSearchParams({
+      webhookUrl: webhookUrl,
+      'tc-csrf-token': getCsrfToken()
+    });
+    
+    // Only set ONE of projectId or buildTypeId, not both
+    const buildTypeId = document.getElementById('buildTypeId')?.value;
+    if (buildTypeId) {
+      params.set('buildTypeId', buildTypeId);
+    } else {
+      params.set('projectId', document.getElementById('projectId').value);
+    }
+    
+    // Add action=toggle to params for POST request
+    params.set('action', 'toggle');
+    
+    try {
+      const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-TC-CSRF-Token': getCsrfToken()
+        },
+        body: params
+      });
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        showToast('Server error: Invalid response format', 'error');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        const newStatus = data.enabled ? 'enabled' : 'disabled';
+        showToast('Webhook ' + newStatus + ' successfully!', 'success');
+        refreshWebhooksList();
+      } else {
+        showToast('Failed to toggle webhook: ' + (data.error || 'Unknown error'), 'error');
+      }
+    } catch (error) {
+      showToast('Error toggling webhook: ' + error.message, 'error');
+    }
+  }
+  
+  // Toggle Local Webhook (for inherited webhooks in build configuration)
+  window.toggleLocalWebhook = async function(webhookUrl, currentlyDisabled) {
+    const params = new URLSearchParams({
       webhookUrl: webhookUrl,
       'tc-csrf-token': getCsrfToken()
     });
     
     const buildTypeId = document.getElementById('buildTypeId')?.value;
-    if (buildTypeId) params.set('buildTypeId', buildTypeId);
+    if (buildTypeId) {
+      params.set('buildTypeId', buildTypeId);
+    }
+    params.set('action', 'toggleLocal');
     
     try {
-      const response = await axios.delete('<c:url value="/notifier/api/webhooks.html"/>?' + params.toString(), {
+      const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>', {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
           'X-TC-CSRF-Token': getCsrfToken()
-        }
+        },
+        body: params
       });
       
-      if (response.data.success) {
-        showMessage('Webhook deleted successfully!', false);
-        refreshWebhooksList();
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        showToast('Server error: Invalid response format', 'error');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        const action = data.locallyDisabled ? 'locally disabled' : 'locally enabled';
+        showToast('Webhook ' + action + ' for this build configuration!', 'success');
+        // Reload page to show updated state
+        setTimeout(() => location.reload(), 1000);
       } else {
-        showMessage('Failed to delete webhook: ' + (response.data.error || 'Unknown error'), true);
+        showToast('Failed to toggle local webhook: ' + (data.error || 'Unknown error'), 'error');
       }
     } catch (error) {
-      showMessage('Error deleting webhook: ' + error.message, true);
+      showToast('Error toggling local webhook: ' + error.message, 'error');
     }
   }
 
   // Refresh List
   async function refreshWebhooksList() {
-    const params = new URLSearchParams({
-      projectId: document.getElementById('projectId').value
-    });
-    
+    const params = new URLSearchParams();
     const buildTypeId = document.getElementById('buildTypeId')?.value;
-    if (buildTypeId) params.set('buildTypeId', buildTypeId);
+    
+    // Only set ONE of projectId or buildTypeId, not both
+    if (buildTypeId) {
+      params.set('buildTypeId', buildTypeId);
+    } else {
+      const projectId = document.getElementById('projectId')?.value;
+      if (projectId) params.set('projectId', projectId);
+    }
     
     try {
-      const response = await axios.get('<c:url value="/notifier/api/webhooks.html"/>?' + params.toString());
+      const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>?' + params.toString())
+        .then(r => r.json());
       
-      if (response.data.success && response.data.webhooks) {
-        const webhooks = response.data.webhooks;
+      if (response.success && response.webhooks) {
+        const webhooks = response.webhooks;
         updateWebhookCount(webhooks.length);
         
         if (webhooks.length === 0) {
@@ -725,14 +1112,17 @@
       if (webhook.buildLongerThan !== null) triggers.push('<span class="tn-trigger-tag tn-trigger-tag-info">&gt; ' + webhook.buildLongerThan + 's</span>');
       if (webhook.buildLongerThanAverage) triggers.push('<span class="tn-trigger-tag tn-trigger-tag-info">&gt; Average</span>');
       
+      // Escape the URL for use in onclick attribute
+      const escapedUrl = webhook.url.replace(/'/g, "\\'").replace(/"/g, '\\"');
+      
       return `
-        <div class="tn-webhook-item" data-webhook-url="${webhook.url}">
-          <div class="tn-webhook-platform">${platformIcon}</div>
+        <div class="tn-webhook-item" data-webhook-url="` + webhook.url + `">
+          <div class="tn-webhook-platform">` + platformIcon + `</div>
           <div class="tn-webhook-info">
-            <div class="tn-webhook-url">${displayUrl}</div>
-            <div class="tn-webhook-triggers">${triggers.join('')}</div>
+            <div class="tn-webhook-url">` + displayUrl + `</div>
+            <div class="tn-webhook-triggers">` + triggers.join('') + `</div>
           </div>
-          <button class="tn-webhook-delete" onclick="deleteWebhook('${webhook.url.replace(/'/g, "\\'")}')">
+          <button class="tn-webhook-delete" onclick="deleteWebhook('` + escapedUrl + `')">
             <svg viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
             </svg>
@@ -1170,6 +1560,7 @@
 .tn-trigger-success { color: #10b981; }
 .tn-trigger-failure { color: #ef4444; }
 .tn-trigger-warning { color: #f59e0b; }
+.tn-trigger-cancel { color: #6366f1; }
 .tn-trigger-info { color: #3b82f6; }
 
 /* Threshold Row */
@@ -1320,6 +1711,14 @@
   color: #1e40af;
 }
 
+.tn-webhook-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tn-webhook-toggle,
 .tn-webhook-delete {
   flex-shrink: 0;
   width: 36px;
@@ -1335,15 +1734,78 @@
   transition: all 0.2s;
 }
 
+.tn-webhook-toggle.tn-toggle-enabled {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #16a34a;
+}
+
+.tn-webhook-toggle.tn-toggle-enabled:hover {
+  background: #bbf7d0;
+  border-color: #4ade80;
+}
+
+.tn-webhook-toggle.tn-toggle-disabled {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+.tn-webhook-toggle.tn-toggle-disabled:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #6b7280;
+}
+
 .tn-webhook-delete:hover {
   background: #fee2e2;
   border-color: #fca5a5;
   color: #ef4444;
 }
 
+.tn-webhook-toggle svg,
 .tn-webhook-delete svg {
   width: 18px;
   height: 18px;
+}
+
+.tn-webhook-item.tn-webhook-disabled {
+  opacity: 0.6;
+}
+
+.tn-webhook-item.tn-webhook-disabled .tn-webhook-url {
+  text-decoration: line-through;
+}
+
+.tn-webhook-item.tn-webhook-inherited {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-color: #7dd3fc;
+}
+
+.tn-webhook-source-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tn-webhook-local-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Empty State */

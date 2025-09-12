@@ -13,6 +13,7 @@ data class WebhookConfiguration(
     val onSuccess: Boolean = false,
     val onFailure: Boolean = false,
     val onStall: Boolean = false,
+    val onCancel: Boolean = false,  // New trigger for cancelled builds
     val buildLongerThan: Int? = null,
     val buildLongerThanAverage: Boolean = false,
     val onFirstFailure: Boolean = false,

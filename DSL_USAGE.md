@@ -220,6 +220,7 @@ object Build : BuildType({
         onSuccess = true
         onFailure = true
         onStall = false
+        onCancel = false
         onFirstFailure = true
         onBuildFixed = true
         buildLongerThanAverage = true
@@ -247,6 +248,7 @@ teamNotifyWebhook {
             onSuccess()     // When build succeeds
             onFailure()     // When build fails
             onStall()       // When build stalls
+            onCancel()      // When build is cancelled
         }
         
         // Duration-based triggers

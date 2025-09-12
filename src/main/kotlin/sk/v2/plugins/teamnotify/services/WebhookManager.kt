@@ -7,6 +7,9 @@ import jetbrains.buildServer.serverSide.settings.ProjectSettingsManager
 import sk.v2.plugins.teamnotify.model.TeamNotifyProjectSettings
 import sk.v2.plugins.teamnotify.model.WebhookConfiguration
 import sk.v2.plugins.teamnotify.model.WebhookPlatform
+import sk.v2.plugins.teamnotify.model.WebhookWithSource
+import sk.v2.plugins.teamnotify.model.WebhookSource
+import sk.v2.plugins.teamnotify.settings.DisabledWebhooksSettings
 
 data class WebhookWithProjectInfo(
     val webhook: WebhookConfiguration,
@@ -21,11 +24,16 @@ class WebhookManager(
     private val sBuildServer: SBuildServer
 ) {
 
-    private val SETTINGS_KEY = "teamnotify.settings"
+    private val SETTINGS_KEY = "team-notify.settings"
 
     fun getWebhooks(project: SProject): List<WebhookConfiguration> {
-        val settings = projectSettingsManager.getSettings(project.projectId, SETTINGS_KEY) as TeamNotifyProjectSettings
-        return settings.webhooks
+        return try {
+            val settings = projectSettingsManager.getSettings(project.projectId, SETTINGS_KEY) as TeamNotifyProjectSettings
+            settings.webhooks
+        } catch (e: Exception) {
+            // If settings can't be loaded (e.g., during plugin update), return empty list
+            emptyList()
+        }
     }
     
     fun getWebhooksForBuildType(buildType: SBuildType): List<WebhookConfiguration> {
@@ -118,6 +126,7 @@ class WebhookManager(
             onSuccess = params["webhook.onSuccess"]?.toBoolean() ?: false,
             onFailure = params["webhook.onFailure"]?.toBoolean() ?: false,
             onStall = params["webhook.onStall"]?.toBoolean() ?: false,
+            onCancel = params["webhook.onCancel"]?.toBoolean() ?: false,
             onFirstFailure = params["webhook.onFirstFailure"]?.toBoolean() ?: false,
             onBuildFixed = params["webhook.onBuildFixed"]?.toBoolean() ?: false,
             buildLongerThanAverage = params["webhook.buildLongerThanAverage"]?.toBoolean() ?: false,
@@ -144,12 +153,29 @@ class WebhookManager(
     
     fun getWebhooksForEntity(projectId: String?, buildTypeId: String?): List<WebhookConfiguration> {
         return when {
-            buildTypeId != null -> {
+            !buildTypeId.isNullOrBlank() -> {
+                // Try finding by external ID first, then by internal ID
                 val buildType = sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)
-                buildType?.let { getWebhooksForBuildType(it) } ?: emptyList()
+                    ?: sBuildServer.projectManager.findBuildTypeById(buildTypeId)
+                    
+                if (buildType != null) {
+                    // Only return build-type specific webhooks, not inherited ones
+                    try {
+                        val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
+                        val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
+                        settings.webhooks
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                } else {
+                    emptyList()
+                }
             }
-            projectId != null -> {
+            !projectId.isNullOrBlank() -> {
+                // Try finding by external ID first, then by internal ID
                 val project = sBuildServer.projectManager.findProjectByExternalId(projectId)
+                    ?: sBuildServer.projectManager.findProjectById(projectId)
+                    
                 project?.let { getWebhooks(it) } ?: emptyList()
             }
             else -> emptyList()
@@ -158,13 +184,30 @@ class WebhookManager(
     
     fun saveWebhooksForEntity(projectId: String?, buildTypeId: String?, webhooks: List<WebhookConfiguration>) {
         when {
-            buildTypeId != null -> {
+            !buildTypeId.isNullOrBlank() -> {
+                // Try finding by external ID first, then by internal ID
                 val buildType = sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)
-                buildType?.let { saveWebhooksForBuildType(it, webhooks) }
+                    ?: sBuildServer.projectManager.findBuildTypeById(buildTypeId)
+                    
+                if (buildType != null) {
+                    saveWebhooksForBuildType(buildType, webhooks)
+                } else {
+                    throw IllegalArgumentException("Build type not found: $buildTypeId")
+                }
             }
-            projectId != null -> {
+            !projectId.isNullOrBlank() -> {
+                // Try finding by external ID first, then by internal ID
                 val project = sBuildServer.projectManager.findProjectByExternalId(projectId)
-                project?.let { saveWebhooks(it, webhooks) }
+                    ?: sBuildServer.projectManager.findProjectById(projectId)
+                    
+                if (project != null) {
+                    saveWebhooks(project, webhooks)
+                } else {
+                    throw IllegalArgumentException("Project not found: $projectId")
+                }
+            }
+            else -> {
+                throw IllegalArgumentException("Either projectId or buildTypeId must be provided")
             }
         }
     }
@@ -194,5 +237,77 @@ class WebhookManager(
         }
         
         return allWebhooks
+    }
+    
+    // Get locally disabled webhook URLs for a build type
+    fun getDisabledWebhooksForBuildType(buildType: SBuildType): Set<String> {
+        val disabledKey = "${SETTINGS_KEY}.disabled.${buildType.buildTypeId}"
+        return try {
+            val settings = projectSettingsManager.getSettings(buildType.project.projectId, disabledKey) as DisabledWebhooksSettings
+            settings.disabledWebhookUrls
+        } catch (e: Exception) {
+            emptySet()
+        }
+    }
+    
+    // Save locally disabled webhook URLs for a build type
+    fun saveDisabledWebhooksForBuildType(buildType: SBuildType, disabledUrls: Set<String>) {
+        val disabledKey = "${SETTINGS_KEY}.disabled.${buildType.buildTypeId}"
+        val settings = projectSettingsManager.getSettings(buildType.project.projectId, disabledKey) as DisabledWebhooksSettings
+        settings.disabledWebhookUrls.clear()
+        settings.disabledWebhookUrls.addAll(disabledUrls)
+        buildType.project.persist()
+    }
+    
+    // Get webhooks with source information for display in build configuration
+    fun getWebhooksWithSourceForBuildType(buildType: SBuildType): List<WebhookWithSource> {
+        val webhooksMap = mutableMapOf<String, WebhookWithSource>()
+        val disabledUrls = getDisabledWebhooksForBuildType(buildType)
+        
+        // Start with project webhooks (lowest priority)
+        val projectWebhooks = getWebhooksIncludingParents(buildType.project)
+        projectWebhooks.forEach { webhook ->
+            webhooksMap[webhook.url] = WebhookWithSource(
+                webhook = webhook,
+                source = WebhookSource.PROJECT,
+                isLocallyDisabled = disabledUrls.contains(webhook.url)
+            )
+        }
+        
+        // Then add build-type specific webhooks (higher priority - overwrites project webhooks with same URL)
+        val buildTypeWebhooks = try {
+            val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
+            val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
+            settings.webhooks
+        } catch (e: Exception) {
+            emptyList()
+        }
+        buildTypeWebhooks.forEach { webhook ->
+            webhooksMap[webhook.url] = WebhookWithSource(
+                webhook = webhook,
+                source = WebhookSource.BUILD_TYPE,
+                isLocallyDisabled = false // Build-type specific webhooks can't be locally disabled, they're just deleted
+            )
+        }
+        
+        // Finally add DSL-defined features (highest priority - overwrites all others)
+        val dslWebhooks = getDslWebhooksForBuildType(buildType)
+        dslWebhooks.forEach { webhook ->
+            webhooksMap[webhook.url] = WebhookWithSource(
+                webhook = webhook,
+                source = WebhookSource.DSL,
+                isLocallyDisabled = disabledUrls.contains(webhook.url)
+            )
+        }
+        
+        return webhooksMap.values.toList()
+    }
+    
+    // Get effective webhooks for build type (for sending notifications)
+    fun getEffectiveWebhooksForBuildType(buildType: SBuildType): List<WebhookConfiguration> {
+        val webhooksWithSource = getWebhooksWithSourceForBuildType(buildType)
+        return webhooksWithSource
+            .filter { !it.isLocallyDisabled && it.webhook.enabled }
+            .map { it.webhook }
     }
 }

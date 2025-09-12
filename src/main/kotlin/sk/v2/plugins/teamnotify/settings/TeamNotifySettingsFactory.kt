@@ -9,3 +9,9 @@ class TeamNotifySettingsFactory : ProjectSettingsFactory {
         return TeamNotifyProjectSettings()
     }
 }
+
+class DisabledWebhooksSettingsFactory : ProjectSettingsFactory {
+    override fun createProjectSettings(projectId: String): ProjectSettings {
+        return DisabledWebhooksSettings()
+    }
+}

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gradle-8.14.3/bin/gradle clean:*)",
+      "Bash(./gradlew:*)",
+      "Bash(./gradle-8.14.3/bin/gradle clean:*)",
+      "Bash(./gradle-8.14.3/bin/gradle:*)",
+      "Bash(sed:*)",
+      "Bash(od:*)",
+      "Bash(git log:*)",
+      "Bash(./gradle-8.11/bin/gradle clean:*)",
+      "Bash(gradle-8.14.3/bin/gradle build:*)",
+      "WebSearch",
+      "WebFetch(domain:javadoc.jetbrains.net)",
+      "WebFetch(domain:plugins.jetbrains.com)",
+      "Bash(cmd /c:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

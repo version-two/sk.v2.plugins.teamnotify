@@ -7,6 +7,7 @@ import sk.v2.plugins.teamnotify.payloads.SlackPayloadGenerator
 import sk.v2.plugins.teamnotify.payloads.TeamsPayloadGenerator
 import sk.v2.plugins.teamnotify.payloads.NotificationContext
 import sk.v2.plugins.teamnotify.payloads.ChangeSummary
+import sk.v2.plugins.teamnotify.payloads.ArtifactSummary
 import jetbrains.buildServer.serverSide.SRunningBuild
 import jetbrains.buildServer.serverSide.SBuildServer
 import jetbrains.buildServer.vcs.SVcsModification
@@ -33,6 +34,7 @@ class WebhookService(
                 message.contains("started", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.STARTED
                 message.contains("successful", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.SUCCESS
                 message.contains("failed", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.FAILURE
+                message.contains("cancelled", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.CANCELLED
                 message.contains("stalled", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.STALLED
                 message.contains("fixed", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.FIXED
                 else -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.STARTED
@@ -51,7 +53,8 @@ class WebhookService(
             agentName = build.agentName,
             startTime = build.startDate,
             finishTime = build.finishDate,
-            changes = if (includeChanges) collectRecentChanges(build, 5) else emptyList()
+            changes = if (includeChanges) collectRecentChanges(build, 5) else emptyList(),
+            artifacts = collectArtifacts(build)
         )
         sendNotification(url, platform, ctx)
     }
@@ -102,6 +105,73 @@ class WebhookService(
                 val comment = try { m.description } catch (_: Throwable) { null }
                 ChangeSummary(version = version, user = user, comment = comment)
             }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+    
+    private fun collectArtifacts(build: SRunningBuild): List<ArtifactSummary> {
+        return try {
+            // Only collect artifacts for finished builds
+            if (!build.isFinished) return emptyList()
+            
+            val rootUrl = sBuildServer.rootUrl?.trimEnd('/') ?: return emptyList()
+            val buildType = build.buildType ?: return emptyList()
+            
+            val artifacts = mutableListOf<ArtifactSummary>()
+            
+            // TeamCity's plugin API doesn't provide direct access to enumerate artifact files
+            // The recommended approach is to use REST API or know the artifact paths beforehand
+            
+            // For known artifact patterns in common build types, we can provide direct links
+            // These are based on common conventions:
+            
+            // 1. Check if build has artifacts at all
+            if (build.isArtifactsExists) {
+                // 2. For plugin builds (like this one), artifacts are typically in distributions/
+                if (buildType.name.contains("plugin", ignoreCase = true) || 
+                    buildType.project.name.contains("notify", ignoreCase = true)) {
+                    // TeamCity plugins typically produce a ZIP in build/distributions/
+                    val projectName = buildType.project.name.replace(Regex("[^a-zA-Z0-9-]"), "-").lowercase()
+                    val buildNumber = build.buildNumber ?: "unknown"
+                    
+                    // Standard plugin distribution ZIP
+                    artifacts.add(ArtifactSummary(
+                        name = "team-notify-${buildNumber}.zip",
+                        path = "distributions/team-notify-*.zip",
+                        size = null,
+                        downloadUrl = "$rootUrl/repository/download/${buildType.externalId}/${build.buildId}:id/distributions/team-notify-*.zip"
+                    ))
+                }
+                
+                // 3. For Java/Kotlin projects, common artifacts
+                if (buildType.name.contains("java", ignoreCase = true) || 
+                    buildType.name.contains("kotlin", ignoreCase = true) ||
+                    buildType.name.contains("jar", ignoreCase = true)) {
+                    // JAR files in build/libs/
+                    artifacts.add(ArtifactSummary(
+                        name = "Application JAR",
+                        path = "build/libs/*.jar",
+                        size = null,
+                        downloadUrl = "$rootUrl/repository/download/${buildType.externalId}/${build.buildId}:id/build/libs/*.jar"
+                    ))
+                }
+                
+                // 4. For web projects
+                if (buildType.name.contains("web", ignoreCase = true) || 
+                    buildType.name.contains("dist", ignoreCase = true)) {
+                    artifacts.add(ArtifactSummary(
+                        name = "Distribution Package",
+                        path = "dist.zip",
+                        size = null,
+                        downloadUrl = "$rootUrl/repository/download/${buildType.externalId}/${build.buildId}:id/dist.zip"
+                    ))
+                }
+            }
+            
+            // Return empty list if no artifacts detected
+            // The payload generators will fall back to "Browse Artifacts" link
+            artifacts
         } catch (_: Exception) {
             emptyList()
         }

@@ -8,6 +8,7 @@ enum class NotificationStatus {
     SUCCESS,
     FAILURE,
     STALLED,
+    CANCELLED,
     FIXED,
     FIRST_FAILURE,
     LONGER_THAN,
@@ -30,11 +31,19 @@ data class NotificationContext(
     val agentName: String?,
     val startTime: Date?,
     val finishTime: Date?,
-    val changes: List<ChangeSummary> = emptyList()
+    val changes: List<ChangeSummary> = emptyList(),
+    val artifacts: List<ArtifactSummary> = emptyList()
 )
 
 data class ChangeSummary(
     val version: String?,
     val user: String?,
     val comment: String?
+)
+
+data class ArtifactSummary(
+    val name: String,
+    val path: String,
+    val size: Long? = null,
+    val downloadUrl: String
 )

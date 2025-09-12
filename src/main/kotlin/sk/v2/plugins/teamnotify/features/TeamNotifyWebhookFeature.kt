@@ -57,6 +57,7 @@ class TeamNotifyWebhookFeature(
         if (params["webhook.onSuccess"]?.toBoolean() == true) triggers.add("Success")
         if (params["webhook.onFailure"]?.toBoolean() == true) triggers.add("Failure")
         if (params["webhook.onStall"]?.toBoolean() == true) triggers.add("Stall")
+        if (params["webhook.onCancel"]?.toBoolean() == true) triggers.add("Cancel")
         if (params["webhook.onFirstFailure"]?.toBoolean() == true) triggers.add("First Failure")
         if (params["webhook.onBuildFixed"]?.toBoolean() == true) triggers.add("Fixed")
         
@@ -72,6 +73,7 @@ class TeamNotifyWebhookFeature(
             "webhook.onFailure" to "true",
             "webhook.onStart" to "false",
             "webhook.onStall" to "false",
+            "webhook.onCancel" to "false",
             "webhook.onFirstFailure" to "false",
             "webhook.onBuildFixed" to "false",
             "webhook.buildLongerThanAverage" to "false"

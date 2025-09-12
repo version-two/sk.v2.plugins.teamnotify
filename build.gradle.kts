@@ -20,7 +20,7 @@ val buildNumber = if (buildNumberFile.exists()) {
     1
 }
 
-version = "1.1.1+$buildNumber-SNAPSHOT"
+version = "1.2.0+$buildNumber-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -30,6 +30,7 @@ repositories {
 }
 
 dependencies {
+    implementation("com.google.code.gson:gson:2.10.1")
     testImplementation(kotlin("test"))
     testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
