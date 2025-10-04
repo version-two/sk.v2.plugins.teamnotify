@@ -1,7 +1,7 @@
 # TeamNotify DSL Usage with Versioned Settings
 
 ## Overview
-TeamNotify now supports configuring webhooks through TeamCity's Kotlin DSL in versioned settings. This allows you to define your webhook notifications as code alongside your build configurations.
+TeamNotify supports configuring webhooks through TeamCity's Kotlin DSL in versioned settings. This allows you to define your webhook notifications as code alongside your build configurations.
 
 ## 🔒 Security Best Practices
 
@@ -15,18 +15,18 @@ Store webhook URLs as TeamCity configuration parameters and reference them in yo
 
 ```kotlin
 // DO THIS - Use parameters
-teamNotifyWebhook {
-    slack(param("slack.webhook.url"))  // Reference parameter
-    triggers {
-        lifecycle {
-            onFailure()
-        }
-    }
+buildFeature {
+    type = "teamnotify.webhook"
+    param("webhook.url", "%env.SLACK_WEBHOOK_URL%")  // Reference parameter
+    param("webhook.platform", "SLACK")
+    param("webhook.enabled", "true")
+    param("webhook.onFailure", "true")
 }
 
 // DON'T DO THIS - Never hardcode URLs
-teamNotifyWebhook {
-    slack("https://hooks.slack.com/services/T00/B00/xxxxx")  // INSECURE!
+buildFeature {
+    type = "teamnotify.webhook"
+    param("webhook.url", "https://hooks.slack.com/services/T00/B00/xxxxx")  // INSECURE!
     // ...
 }
 ```
@@ -35,27 +35,23 @@ teamNotifyWebhook {
 For additional security, use password-type parameters that are masked in the UI:
 
 ```kotlin
-object Project : Project({
+object MyBuild : BuildType({
     params {
         // Define password parameter - value is set in TeamCity UI
-        password("slack.webhook.url", "", 
+        password("slack.webhook.url", "",
             label = "Slack Webhook URL",
             description = "Webhook URL for Slack notifications",
             display = ParameterDisplay.HIDDEN)
-        
-        password("teams.webhook.url", "",
-            label = "Teams Webhook URL", 
-            description = "Webhook URL for Teams notifications",
-            display = ParameterDisplay.HIDDEN)
     }
-    
+
     // Use the parameters in webhook configuration
-    teamNotifyWebhook {
-        slack(param("slack.webhook.url"))
-        triggers {
-            lifecycle {
-                onFailure()
-            }
+    features {
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "%slack.webhook.url%")
+            param("webhook.platform", "SLACK")
+            param("webhook.enabled", "true")
+            param("webhook.onFailure", "true")
         }
     }
 })
@@ -66,22 +62,23 @@ Define sensitive parameters at the root project level for organization-wide use:
 
 ```kotlin
 // In root project settings.kts
-object RootProject : Project({
+project {
     params {
-        password("org.slack.critical.webhook", "", 
+        password("org.slack.critical.webhook", "",
             label = "Organization Critical Alerts Webhook",
             display = ParameterDisplay.HIDDEN)
     }
-})
+}
 
-// In sub-project - inherits root parameters
-object SubProject : Project({
-    teamNotifyWebhook {
-        slack(param("org.slack.critical.webhook"))  // Uses inherited parameter
-        triggers {
-            statusChanges {
-                onFirstFailure()
-            }
+// In build type - inherits root parameters
+object MyBuild : BuildType({
+    features {
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "%org.slack.critical.webhook%")  // Uses inherited parameter
+            param("webhook.platform", "SLACK")
+            param("webhook.enabled", "true")
+            param("webhook.onFirstFailure", "true")
         }
     }
 })
@@ -97,21 +94,17 @@ object Build : BuildType({
         param("webhook.url.dev", "")
         param("webhook.url.staging", "")
         param("webhook.url.prod", "")
+        param("env.name", "dev")
     }
-    
-    teamNotifyWebhook {
-        // Select webhook based on environment
-        val webhookUrl = when (param("env.name")) {
-            "production" -> param("webhook.url.prod")
-            "staging" -> param("webhook.url.staging")
-            else -> param("webhook.url.dev")
-        }
-        
-        slack(webhookUrl)
-        triggers {
-            lifecycle {
-                onFailure()
-            }
+
+    features {
+        buildFeature {
+            type = "teamnotify.webhook"
+            // Use conditional parameter reference based on environment
+            param("webhook.url", "%webhook.url.${param("env.name")}%")
+            param("webhook.platform", "SLACK")
+            param("webhook.enabled", "true")
+            param("webhook.onFailure", "true")
         }
     }
 })
@@ -129,171 +122,148 @@ object Build : BuildType({
 
 ## Basic Usage
 
-### Import the DSL
-Add the following import to your `.teamcity/settings.kts` file:
+### Standard Imports
+Add the following imports to your `.teamcity/settings.kts` file:
 
 ```kotlin
-import sk.v2.plugins.teamnotify.dsl.*
-```
-
-### Configure Webhooks at Project Level
-
-```kotlin
-import jetbrains.buildServer.configs.kotlin.v2019_2.*
-import sk.v2.plugins.teamnotify.dsl.*
-
-object Project : Project({
-    // ... your project configuration ...
-    
-    // Add a Slack webhook
-    teamNotifyWebhook {
-        slack("https://hooks.slack.com/services/YOUR/WEBHOOK/URL") {
-            // Configuration specific to Slack
-        }
-        
-        triggers {
-            lifecycle {
-                onSuccess()
-                onFailure()
-                onFirstFailure()
-                onFixed()
-            }
-            
-            duration {
-                longerThanAverage()
-                longerThan(300) // 5 minutes
-            }
-        }
-        
-        enabled = true
-    }
-    
-    // Add a Microsoft Teams webhook
-    teamNotifyWebhook {
-        teams("https://outlook.office.com/webhook/YOUR/WEBHOOK/URL") {
-            // Configuration specific to Teams
-        }
-        
-        triggers {
-            lifecycle {
-                onStart()
-                onFailure()
-            }
-        }
-    }
-    
-    // Add a Discord webhook
-    teamNotifyWebhook {
-        discord("https://discord.com/api/webhooks/YOUR/WEBHOOK/URL") {
-            // Configuration specific to Discord
-        }
-        
-        triggers {
-            statusChanges {
-                onFirstFailure()
-                onFixed()
-            }
-        }
-    }
-})
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.buildFeature
 ```
 
 ### Configure Webhooks at Build Type Level
 
 ```kotlin
-import jetbrains.buildServer.configs.kotlin.v2019_2.*
-import jetbrains.buildServer.configs.kotlin.v2019_2.buildSteps.script
-import sk.v2.plugins.teamnotify.dsl.*
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.buildFeature
 
-object Build : BuildType({
+object MyBuild : BuildType({
     name = "My Build"
-    
+
     // ... your build configuration ...
-    
-    // Add webhook specific to this build type
-    teamNotifyWebhook {
-        url = "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
-        platform = WebhookPlatform.SLACK
-        
-        // Individual trigger flags
-        onStart = false
-        onSuccess = true
-        onFailure = true
-        onStall = false
-        onCancel = false
-        onFirstFailure = true
-        onBuildFixed = true
-        buildLongerThanAverage = true
-        buildLongerThan = 600 // 10 minutes
-        
-        enabled = true
+
+    features {
+        // Add a Slack webhook
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "https://hooks.slack.com/services/YOUR/WEBHOOK/URL")
+            param("webhook.platform", "SLACK")
+            param("webhook.enabled", "true")
+            param("webhook.onSuccess", "true")
+            param("webhook.onFailure", "true")
+            param("webhook.onFirstFailure", "true")
+            param("webhook.onBuildFixed", "true")
+            param("webhook.buildLongerThanAverage", "true")
+            param("webhook.buildLongerThan", "300")  // 5 minutes
+        }
+
+        // Add a Microsoft Teams webhook
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "https://outlook.office.com/webhook/YOUR/WEBHOOK/URL")
+            param("webhook.platform", "TEAMS")
+            param("webhook.enabled", "true")
+            param("webhook.onStart", "true")
+            param("webhook.onFailure", "true")
+        }
+
+        // Add a Discord webhook
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "https://discord.com/api/webhooks/YOUR/WEBHOOK/URL")
+            param("webhook.platform", "DISCORD")
+            param("webhook.enabled", "true")
+            param("webhook.onFirstFailure", "true")
+            param("webhook.onBuildFixed", "true")
+        }
     }
 })
 ```
 
+### Available Webhook Parameters
+
+All webhook parameters are configured using `param()` inside a `buildFeature` block:
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `webhook.url` | String | Webhook URL (required) | `https://discord.com/api/webhooks/...` |
+| `webhook.platform` | String | Platform: `SLACK`, `TEAMS`, `DISCORD` (required) | `DISCORD` |
+| `webhook.enabled` | Boolean | Enable/disable webhook | `true` |
+| `webhook.onStart` | Boolean | Trigger on build start | `true` |
+| `webhook.onSuccess` | Boolean | Trigger on build success | `true` |
+| `webhook.onFailure` | Boolean | Trigger on build failure | `true` |
+| `webhook.onStall` | Boolean | Trigger on build stall | `true` |
+| `webhook.onCancel` | Boolean | Trigger on build cancel | `true` |
+| `webhook.onFirstFailure` | Boolean | Trigger on first failure | `true` |
+| `webhook.onBuildFixed` | Boolean | Trigger when build is fixed | `true` |
+| `webhook.buildLongerThanAverage` | Boolean | Trigger if build takes longer than average | `true` |
+| `webhook.buildLongerThan` | Integer | Trigger if build takes longer than N seconds | `600` |
+| `webhook.includeChanges` | Boolean | Include change details in notification | `true` |
+| `webhook.branchFilter` | String | Filter by branch patterns | `+:main,-:feature/*` |
+
 ## Advanced Configuration
 
-### Using Fluent API for Triggers
-
-The DSL provides a fluent API for configuring triggers:
+### Complete Example with All Options
 
 ```kotlin
-teamNotifyWebhook {
-    slack("https://hooks.slack.com/services/YOUR/WEBHOOK/URL")
-    
-    triggers {
-        // Lifecycle events
-        lifecycle {
-            onStart()       // When build starts
-            onSuccess()     // When build succeeds
-            onFailure()     // When build fails
-            onStall()       // When build stalls
-            onCancel()      // When build is cancelled
-        }
-        
-        // Duration-based triggers
-        duration {
-            longerThanAverage()    // When build takes longer than average
-            longerThan(300)        // When build takes longer than 5 minutes
-        }
-        
-        // Status change triggers
-        statusChanges {
-            onFirstFailure()       // First failure after success
-            onFixed()              // Build fixed after failure
+object MyBuild : BuildType({
+    name = "Production Build"
+
+    features {
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "%env.DISCORD_WEBHOOK%")
+            param("webhook.platform", "DISCORD")
+            param("webhook.enabled", "true")
+
+            // Lifecycle triggers
+            param("webhook.onStart", "false")
+            param("webhook.onSuccess", "true")
+            param("webhook.onFailure", "true")
+            param("webhook.onStall", "true")
+            param("webhook.onCancel", "true")
+
+            // Status change triggers
+            param("webhook.onFirstFailure", "true")
+            param("webhook.onBuildFixed", "true")
+
+            // Duration triggers
+            param("webhook.buildLongerThanAverage", "true")
+            param("webhook.buildLongerThan", "300")  // 5 minutes in seconds
+
+            // Additional options
+            param("webhook.includeChanges", "true")
+            param("webhook.branchFilter", "+:main,+:release/*,-:feature/*")
         }
     }
-}
+})
 ```
 
 ### Multiple Webhooks
 
-You can configure multiple webhooks for the same project or build type:
+You can configure multiple webhooks for the same build type:
 
 ```kotlin
-object Project : Project({
-    // Webhook for critical failures
-    teamNotifyWebhook {
-        slack("https://hooks.slack.com/services/CRITICAL/WEBHOOK/URL")
-        triggers {
-            lifecycle {
-                onFailure()
-            }
-            statusChanges {
-                onFirstFailure()
-            }
+object MyBuild : BuildType({
+    features {
+        // Webhook for critical failures to Slack
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "%env.SLACK_CRITICAL_WEBHOOK%")
+            param("webhook.platform", "SLACK")
+            param("webhook.enabled", "true")
+            param("webhook.onFailure", "true")
+            param("webhook.onFirstFailure", "true")
         }
-    }
-    
-    // Webhook for all events
-    teamNotifyWebhook {
-        teams("https://outlook.office.com/webhook/ALL/EVENTS/URL")
-        triggers {
-            lifecycle {
-                onStart()
-                onSuccess()
-                onFailure()
-            }
+
+        // Webhook for all events to Teams
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "%env.TEAMS_ALL_EVENTS_WEBHOOK%")
+            param("webhook.platform", "TEAMS")
+            param("webhook.enabled", "true")
+            param("webhook.onStart", "true")
+            param("webhook.onSuccess", "true")
+            param("webhook.onFailure", "true")
         }
     }
 })
@@ -318,43 +288,38 @@ DSL-defined webhooks work alongside webhooks configured through the TeamCity UI:
 
 ### Slack
 ```kotlin
-teamNotifyWebhook {
-    slack("https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX")
-    triggers {
-        lifecycle {
-            onSuccess()
-            onFailure()
-        }
-    }
+buildFeature {
+    type = "teamnotify.webhook"
+    param("webhook.url", "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX")
+    param("webhook.platform", "SLACK")
+    param("webhook.enabled", "true")
+    param("webhook.onSuccess", "true")
+    param("webhook.onFailure", "true")
 }
 ```
 
 ### Microsoft Teams
 ```kotlin
-teamNotifyWebhook {
-    teams("https://outlook.office.com/webhook/YOUR-GUID/IncomingWebhook/YOUR-WEBHOOK-ID")
-    triggers {
-        lifecycle {
-            onFailure()
-        }
-        statusChanges {
-            onFirstFailure()
-        }
-    }
+buildFeature {
+    type = "teamnotify.webhook"
+    param("webhook.url", "https://outlook.office.com/webhook/YOUR-GUID/IncomingWebhook/YOUR-WEBHOOK-ID")
+    param("webhook.platform", "TEAMS")
+    param("webhook.enabled", "true")
+    param("webhook.onFailure", "true")
+    param("webhook.onFirstFailure", "true")
 }
 ```
 
 ### Discord
 ```kotlin
-teamNotifyWebhook {
-    discord("https://discord.com/api/webhooks/1234567890/abcdefghijklmnop")
-    triggers {
-        lifecycle {
-            onStart()
-            onSuccess()
-            onFailure()
-        }
-    }
+buildFeature {
+    type = "teamnotify.webhook"
+    param("webhook.url", "https://discord.com/api/webhooks/1234567890/abcdefghijklmnop")
+    param("webhook.platform", "DISCORD")
+    param("webhook.enabled", "true")
+    param("webhook.onStart", "true")
+    param("webhook.onSuccess", "true")
+    param("webhook.onFailure", "true")
 }
 ```
 
