@@ -1,9 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
- 
+import org.jetbrains.changelog.Changelog
+import org.jetbrains.changelog.markdownToHTML
 
 plugins {
     kotlin("jvm") version "1.9.22"
     id("io.github.rodm.teamcity-server") version "1.5.2"
+    id("org.jetbrains.changelog") version "2.2.1"
 }
 
 group = "sk.v2.plugins.teamnotify"
@@ -20,7 +22,14 @@ val buildNumber = if (buildNumberFile.exists()) {
     1
 }
 
-version = "1.2.0+$buildNumber-SNAPSHOT"
+// Check if this is a release build (use -Prelease flag)
+val isRelease = project.hasProperty("release")
+val baseVersion = "1.2.2"
+version = if (isRelease) {
+    "$baseVersion+$buildNumber"
+} else {
+    "$baseVersion+$buildNumber-SNAPSHOT"
+}
 
 repositories {
     mavenCentral()
@@ -59,5 +68,62 @@ teamcity {
     }
 }
 
-// Packaging is SDK-compliant: teamcity-plugin.xml at ZIP root; Spring bean definition file
-// META-INF/build-server-plugin-<plugin>.xml inside the server JAR; web resources in buildServerResources/
+changelog {
+    version.set(baseVersion)
+    path.set(file("CHANGELOG.md").canonicalPath)
+    groups.empty()
+    keepUnreleasedSection.set(true)
+    unreleasedTerm.set("[Unreleased]")
+    itemPrefix.set("-")
+}
+
+val changelogHtml: String by lazy {
+    with(changelog) {
+        renderItem(
+            (getOrNull(baseVersion) ?: getUnreleased())
+                .withHeader(false)
+                .withEmptySections(false),
+            Changelog.OutputType.HTML,
+        )
+    }
+}
+
+tasks.register("generateChangelogHtml") {
+    group = "documentation"
+    description = "Generates HTML version of the latest changelog entry"
+
+    val outputFile = file("src/main/resources/buildServerResources/changelog.html")
+    outputs.file(outputFile)
+
+    doLast {
+        val html = """
+            |<!DOCTYPE html>
+            |<html>
+            |<head>
+            |    <meta charset="UTF-8">
+            |    <title>Team Notify Changelog</title>
+            |    <style>
+            |        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+            |        h1, h2, h3 { color: #333; }
+            |        h2 { border-bottom: 1px solid #eee; padding-bottom: 10px; }
+            |        h3 { color: #555; }
+            |        ul { padding-left: 20px; }
+            |        li { margin: 8px 0; }
+            |        code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+            |        strong { color: #222; }
+            |    </style>
+            |</head>
+            |<body>
+            |    <h1>Team Notify v$baseVersion</h1>
+            |    $changelogHtml
+            |</body>
+            |</html>
+        """.trimMargin()
+        outputFile.writeText(html)
+        println("Generated changelog HTML at: ${outputFile.absolutePath}")
+    }
+}
+
+tasks.named("processResources") {
+    dependsOn("generateChangelogHtml")
+}

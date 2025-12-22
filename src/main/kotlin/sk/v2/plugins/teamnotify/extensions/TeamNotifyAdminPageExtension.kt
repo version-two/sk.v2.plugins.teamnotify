@@ -34,6 +34,6 @@ class TeamNotifyAdminPageExtension(
     }
 
     override fun getGroup(): String {
-        return SERVER_RELATED_GROUP
+        return INTEGRATIONS_GROUP
     }
 }

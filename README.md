@@ -85,27 +85,31 @@ Additionally, an admin page is available under **Administration → TeamNotify**
 Configure webhooks in your `.teamcity/settings.kts` files:
 
 ```kotlin
-import sk.v2.plugins.teamnotify.dsl.*
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.buildFeature
 
-project {
+object MyBuild : BuildType({
+    name = "My Build"
+
     // Define secure parameter for webhook URL
     params {
         password("slack.webhook.url", "",
             label = "Slack Webhook URL",
             display = ParameterDisplay.HIDDEN)
     }
-    
+
     // Configure webhook using parameter
-    teamNotifyWebhook {
-        slack(param("slack.webhook.url"))  // Never hardcode the URL!
-        triggers {
-            lifecycle {
-                onFailure()
-                onSuccess()
-            }
+    features {
+        buildFeature {
+            type = "teamnotify.webhook"
+            param("webhook.url", "%slack.webhook.url%")  // Never hardcode the URL!
+            param("webhook.platform", "SLACK")
+            param("webhook.enabled", "true")
+            param("webhook.onFailure", "true")
+            param("webhook.onSuccess", "true")
         }
     }
-}
+})
 ```
 
 See [DSL_USAGE.md](DSL_USAGE.md) for comprehensive documentation and examples.
@@ -124,7 +128,6 @@ For safety, URLs are validated per platform. Expected formats include:
 
 *   `src/main/kotlin/sk/v2/plugins/teamnotify/`
     *   `controllers/` – UI controllers (`NotifierSettingsController`, `TeamNotifyAdminController`).
-    *   `dsl/` – Kotlin DSL support for versioned settings configuration.
     *   `features/` – TeamCity feature descriptors for DSL integration.
     *   `listeners/` – Build event handling.
     *   `model/` – Configuration models.

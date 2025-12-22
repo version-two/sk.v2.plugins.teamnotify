@@ -62,7 +62,7 @@
       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
     </svg>
     <div class="tn-alert-message"></div>
-    <button class="tn-alert-close" onclick="this.parentElement.style.display='none'">×</button>
+    <button class="tn-alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
   </div>
   
   <div id="errorArea" class="tn-alert tn-alert-error" style="display:none;">
@@ -70,7 +70,7 @@
       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/>
     </svg>
     <div class="tn-alert-message"></div>
-    <button class="tn-alert-close" onclick="this.parentElement.style.display='none'">×</button>
+    <button class="tn-alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
   </div>
 
   <input type="hidden" id="projectId" value="${projectId}"/>
@@ -110,8 +110,9 @@
             
             <input type="radio" id="platform-teams" name="platform-radio" value="TEAMS">
             <label for="platform-teams" class="tn-platform-option">
-              <svg viewBox="0 0 24 24" class="tn-platform-icon">
-                <path fill="#5059C9" d="M20.625 8.127q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832Q18 6.052 18 5.502q0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm0 10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832Q18 16.798 18 16.248q0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm-6.873-10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832-.205-.475-.205-1.025 0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm0 10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832-.205-.475-.205-1.025 0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zM20.625 0q1.138 0 2.125.433.988.433 1.713 1.158.725.725 1.158 1.713.433.987.433 2.125v10.746q0 1.138-.433 2.125-.433.988-1.158 1.713-.725.725-1.713 1.158-.987.433-2.125.433H9.879q-1.138 0-2.125-.433-.988-.433-1.713-1.158-.725-.725-1.158-1.713-.433-.987-.433-2.125V11h5.427v5.248q0 .356.239.595.239.239.595.239h9.914q.356 0 .595-.239.239-.239.239-.595V5.502q0-.356-.239-.595-.239-.239-.595-.239h-9.914q-.356 0-.595.239-.239.239-.239.595V11H4.5V5.502q0-1.138.433-2.125.433-.988 1.158-1.713Q6.816.939 7.804.506 8.79.073 9.929.073h10.696z"/>
+              <svg viewBox="0 0 16 16" class="tn-platform-icon">
+                <path fill="#5059C9" d="M9.186 4.797a2.42 2.42 0 1 0-2.86-2.448h1.178c.929 0 1.682.753 1.682 1.682zm-4.295 7.738h2.613c.929 0 1.682-.753 1.682-1.682V5.58h2.783a.7.7 0 0 1 .682.716v4.294a4.197 4.197 0 0 1-4.093 4.293c-1.618-.04-3-.99-3.667-2.35Zm10.737-9.372a1.674 1.674 0 1 1-3.349 0 1.674 1.674 0 0 1 3.349 0m-2.238 9.488-.12-.002a5.2 5.2 0 0 0 .381-2.07V6.306a1.7 1.7 0 0 0-.15-.725h1.792c.39 0 .707.317.707.707v3.765a2.6 2.6 0 0 1-2.598 2.598z"/>
+                <path fill="#5059C9" d="M.682 3.349h6.822c.377 0 .682.305.682.682v6.822a.68.68 0 0 1-.682.682H.682A.68.68 0 0 1 0 10.853V4.03c0-.377.305-.682.682-.682Zm5.206 2.596v-.72h-3.59v.72h1.357V9.66h.87V5.945z"/>
               </svg>
               <span>Teams</span>
             </label>
@@ -304,14 +305,14 @@
           <c:choose>
             <c:when test="${not empty webhooksWithSource}">
               <!-- Build configuration: show webhooks with source information -->
-              <c:forEach var="webhookWithSource" items="${webhooksWithSource}">
+              <c:forEach var="webhookWithSource" items="${webhooksWithSource}" varStatus="status">
                 <c:set var="webhook" value="${webhookWithSource.webhook}"/>
                 <c:set var="source" value="${webhookWithSource.source}"/>
                 <c:set var="isLocallyDisabled" value="${webhookWithSource.locallyDisabled}"/>
                 <c:set var="isInherited" value="${source == 'PROJECT' || source == 'DSL'}"/>
                 <c:set var="isEffectivelyDisabled" value="${isLocallyDisabled || !webhook.enabled}"/>
                 <div class="tn-webhook-item ${isEffectivelyDisabled ? 'tn-webhook-disabled' : ''} ${isInherited ? 'tn-webhook-inherited' : ''}" 
-                     data-webhook-url="${fn:escapeXml(webhook.url)}"
+                     data-webhook-index="${status.index}"
                      data-webhook-source="${source}"
                      data-locally-disabled="${isLocallyDisabled}">
                   <div class="tn-webhook-platform">
@@ -322,8 +323,9 @@
                         </svg>
                       </c:when>
                       <c:when test="${webhook.platform == 'TEAMS'}">
-                        <svg viewBox="0 0 24 24" class="tn-platform-icon-small">
-                          <path fill="#5059C9" d="M20.625 8.127q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832Q18 6.052 18 5.502q0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm0 10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832Q18 16.798 18 16.248q0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm-6.873-10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832-.205-.475-.205-1.025 0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm0 10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832-.205-.475-.205-1.025 0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zM20.625 0q1.138 0 2.125.433.988.433 1.713 1.158.725.725 1.158 1.713.433.987.433 2.125v10.746q0 1.138-.433 2.125-.433.988-1.158 1.713-.725.725-1.713 1.158-.987.433-2.125.433H9.879q-1.138 0-2.125-.433-.988-.433-1.713-1.158-.725-.725-1.158-1.713-.433-.987-.433-2.125V11h5.427v5.248q0 .356.239.595.239.239.595.239h9.914q.356 0 .595-.239.239-.239.239-.595V5.502q0-.356-.239-.595-.239-.239-.595-.239h-9.914q-.356 0-.595.239-.239.239-.239.595V11H4.5V5.502q0-1.138.433-2.125.433-.988 1.158-1.713Q6.816.939 7.804.506 8.79.073 9.929.073h10.696z"/>
+                        <svg viewBox="0 0 16 16" class="tn-platform-icon-small">
+                          <path fill="#5059C9" d="M9.186 4.797a2.42 2.42 0 1 0-2.86-2.448h1.178c.929 0 1.682.753 1.682 1.682zm-4.295 7.738h2.613c.929 0 1.682-.753 1.682-1.682V5.58h2.783a.7.7 0 0 1 .682.716v4.294a4.197 4.197 0 0 1-4.093 4.293c-1.618-.04-3-.99-3.667-2.35Zm10.737-9.372a1.674 1.674 0 1 1-3.349 0 1.674 1.674 0 0 1 3.349 0m-2.238 9.488-.12-.002a5.2 5.2 0 0 0 .381-2.07V6.306a1.7 1.7 0 0 0-.15-.725h1.792c.39 0 .707.317.707.707v3.765a2.6 2.6 0 0 1-2.598 2.598z"/>
+                          <path fill="#5059C9" d="M.682 3.349h6.822c.377 0 .682.305.682.682v6.822a.68.68 0 0 1-.682.682H.682A.68.68 0 0 1 0 10.853V4.03c0-.377.305-.682.682-.682Zm5.206 2.596v-.72h-3.59v.72h1.357V9.66h.87V5.945z"/>
                         </svg>
                       </c:when>
                       <c:otherwise>
@@ -336,14 +338,18 @@
                   
                   <div class="tn-webhook-info">
                     <div class="tn-webhook-url">
-                      <c:set var="u" value="${webhook.url}"/>
-                      <c:set var="len" value="${fn:length(u)}"/>
                       <c:choose>
-                        <c:when test="${len > 60}">
-                          ${fn:substring(u, 0, 40)}...${fn:substring(u, len - 15, len)}
+                        <c:when test="${webhook.platform == 'SLACK'}">
+                          Slack Webhook (********)
+                        </c:when>
+                        <c:when test="${webhook.platform == 'TEAMS'}">
+                          Teams Webhook (********)
+                        </c:when>
+                        <c:when test="${webhook.platform == 'DISCORD'}">
+                          Discord Webhook (********)
                         </c:when>
                         <c:otherwise>
-                          ${u}
+                          Webhook (********)
                         </c:otherwise>
                       </c:choose>
                       <c:if test="${isInherited}">
@@ -413,7 +419,7 @@
                           <c:when test="${isInherited}">
                             <!-- For inherited webhooks, show local disable toggle -->
                             <button class="tn-webhook-toggle ${isLocallyDisabled ? 'tn-toggle-disabled' : 'tn-toggle-enabled'}" 
-                                    onclick="toggleLocalWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}', ${isLocallyDisabled})"
+                                    onclick="toggleLocalWebhook(${status.index}, ${isLocallyDisabled})"
                                     title="${isLocallyDisabled ? 'Enable' : 'Disable'} for this build configuration only">
                               <svg viewBox="0 0 20 20" fill="currentColor">
                                 <c:choose>
@@ -430,7 +436,7 @@
                           <c:otherwise>
                             <!-- For build-type specific webhooks, show regular toggle and delete -->
                             <button class="tn-webhook-toggle ${webhook.enabled ? 'tn-toggle-enabled' : 'tn-toggle-disabled'}" 
-                                    onclick="toggleWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}', ${webhook.enabled})"
+                                    onclick="toggleWebhook(${status.index}, ${webhook.enabled})"
                                     title="${webhook.enabled ? 'Disable' : 'Enable'} webhook">
                               <svg viewBox="0 0 20 20" fill="currentColor">
                                 <c:choose>
@@ -443,7 +449,7 @@
                                 </c:choose>
                               </svg>
                             </button>
-                            <button class="tn-webhook-delete" onclick="deleteWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}')">
+                            <button class="tn-webhook-delete" onclick="deleteWebhook(${status.index})">
                               <svg viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
                               </svg>
@@ -458,8 +464,8 @@
             </c:when>
             <c:otherwise>
               <!-- Project level: show regular webhooks -->
-              <c:forEach var="webhook" items="${webhooks}">
-            <div class="tn-webhook-item ${!webhook.enabled ? 'tn-webhook-disabled' : ''}" data-webhook-url="${fn:escapeXml(webhook.url)}">
+              <c:forEach var="webhook" items="${webhooks}" varStatus="status">
+            <div class="tn-webhook-item ${!webhook.enabled ? 'tn-webhook-disabled' : ''}" data-webhook-index="${status.index}">
               <div class="tn-webhook-platform">
                 <c:choose>
                   <c:when test="${webhook.platform == 'SLACK'}">
@@ -468,8 +474,9 @@
                     </svg>
                   </c:when>
                   <c:when test="${webhook.platform == 'TEAMS'}">
-                    <svg viewBox="0 0 24 24" class="tn-platform-icon-small">
-                      <path fill="#5059C9" d="M20.625 8.127q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832Q18 6.052 18 5.502q0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm0 10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832Q18 16.798 18 16.248q0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm-6.873-10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832-.205-.475-.205-1.025 0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zm0 10.746q-.55 0-1.025-.205-.475-.205-.832-.563-.358-.357-.563-.832-.205-.475-.205-1.025 0-.55.205-1.025.205-.475.563-.832.357-.358.832-.563.475-.205 1.025-.205.55 0 1.025.205.475.205.832.563.358.357.563.832.205.475.205 1.025 0 .55-.205 1.025-.205.475-.563.832-.357.358-.832.563-.475.205-1.025.205zM20.625 0q1.138 0 2.125.433.988.433 1.713 1.158.725.725 1.158 1.713.433.987.433 2.125v10.746q0 1.138-.433 2.125-.433.988-1.158 1.713-.725.725-1.713 1.158-.987.433-2.125.433H9.879q-1.138 0-2.125-.433-.988-.433-1.713-1.158-.725-.725-1.158-1.713-.433-.987-.433-2.125V11h5.427v5.248q0 .356.239.595.239.239.595.239h9.914q.356 0 .595-.239.239-.239.239-.595V5.502q0-.356-.239-.595-.239-.239-.595-.239h-9.914q-.356 0-.595.239-.239.239-.239.595V11H4.5V5.502q0-1.138.433-2.125.433-.988 1.158-1.713Q6.816.939 7.804.506 8.79.073 9.929.073h10.696z"/>
+                    <svg viewBox="0 0 16 16" class="tn-platform-icon-small">
+                      <path fill="#5059C9" d="M9.186 4.797a2.42 2.42 0 1 0-2.86-2.448h1.178c.929 0 1.682.753 1.682 1.682zm-4.295 7.738h2.613c.929 0 1.682-.753 1.682-1.682V5.58h2.783a.7.7 0 0 1 .682.716v4.294a4.197 4.197 0 0 1-4.093 4.293c-1.618-.04-3-.99-3.667-2.35Zm10.737-9.372a1.674 1.674 0 1 1-3.349 0 1.674 1.674 0 0 1 3.349 0m-2.238 9.488-.12-.002a5.2 5.2 0 0 0 .381-2.07V6.306a1.7 1.7 0 0 0-.15-.725h1.792c.39 0 .707.317.707.707v3.765a2.6 2.6 0 0 1-2.598 2.598z"/>
+                      <path fill="#5059C9" d="M.682 3.349h6.822c.377 0 .682.305.682.682v6.822a.68.68 0 0 1-.682.682H.682A.68.68 0 0 1 0 10.853V4.03c0-.377.305-.682.682-.682Zm5.206 2.596v-.72h-3.59v.72h1.357V9.66h.87V5.945z"/>
                     </svg>
                   </c:when>
                   <c:otherwise>
@@ -482,14 +489,18 @@
               
               <div class="tn-webhook-info">
                 <div class="tn-webhook-url">
-                  <c:set var="u" value="${webhook.url}"/>
-                  <c:set var="len" value="${fn:length(u)}"/>
                   <c:choose>
-                    <c:when test="${len > 60}">
-                      ${fn:substring(u, 0, 40)}...${fn:substring(u, len - 15, len)}
+                    <c:when test="${webhook.platform == 'SLACK'}">
+                      Slack Webhook (********)
+                    </c:when>
+                    <c:when test="${webhook.platform == 'TEAMS'}">
+                      Teams Webhook (********)
+                    </c:when>
+                    <c:when test="${webhook.platform == 'DISCORD'}">
+                      Discord Webhook (********)
                     </c:when>
                     <c:otherwise>
-                      ${u}
+                      Webhook (********)
                     </c:otherwise>
                   </c:choose>
                 </div>
@@ -543,7 +554,7 @@
                   </c:when>
                   <c:otherwise>
                     <button class="tn-webhook-toggle ${webhook.enabled ? 'tn-toggle-enabled' : 'tn-toggle-disabled'}" 
-                            onclick="toggleWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}', ${webhook.enabled})"
+                            onclick="toggleWebhook(${status.index}, ${webhook.enabled})"
                             title="${webhook.enabled ? 'Disable' : 'Enable'} webhook">
                       <svg viewBox="0 0 20 20" fill="currentColor">
                         <c:choose>
@@ -556,7 +567,7 @@
                         </c:choose>
                       </svg>
                     </button>
-                    <button class="tn-webhook-delete" onclick="deleteWebhook('${fn:escapeXml(fn:replace(webhook.url, "'", "\\'"))}')">
+                    <button class="tn-webhook-delete" onclick="deleteWebhook(${status.index})">
                       <svg viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
                       </svg>
@@ -597,7 +608,7 @@
           <h4>Slack Setup</h4>
           <ol>
             <li>Open your Slack workspace</li>
-            <li>Go to Apps → Incoming Webhooks</li>
+            <li>Go to Apps > Incoming Webhooks</li>
             <li>Click "Add to Slack" and select channel</li>
             <li>Copy the webhook URL</li>
           </ol>
@@ -612,8 +623,8 @@
           <h4>Microsoft Teams Setup</h4>
           <ol>
             <li>Open your Teams channel</li>
-            <li>Click ••• → Connectors</li>
-            <li>Find "Incoming Webhook" → Configure</li>
+            <li>Click ... > Connectors</li>
+            <li>Find "Incoming Webhook" > Configure</li>
             <li>Name it and copy the URL</li>
           </ol>
         </div>
@@ -626,7 +637,7 @@
           </div>
           <h4>Discord Setup</h4>
           <ol>
-            <li>Server Settings → Integrations</li>
+            <li>Server Settings > Integrations</li>
             <li>Click "Create Webhook"</li>
             <li>Choose channel and customize</li>
             <li>Copy the webhook URL</li>
@@ -637,7 +648,6 @@
   </div>
 </div>
 
-<!-- Using native fetch API instead of external axios -->
 <script>
 (function() {
   // DOM Elements
@@ -725,8 +735,6 @@
   function showToast(message, type = 'info') {
     const toastContainer = document.getElementById('tn-toast-container');
     const toast = document.createElement('div');
-    
-    // Set styles based on type
     const styles = {
       success: 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;',
       error: 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;',
@@ -750,8 +758,6 @@
       min-width: 300px;
       max-width: 500px;
     `.replace(/\n/g, '');
-    
-    // Add icon based on type
     const icons = {
       success: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>',
       error: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>',
@@ -766,15 +772,12 @@
       '</button>';
     
     toastContainer.appendChild(toast);
-    
-    // Auto-remove after 5 seconds
     setTimeout(() => {
       toast.style.animation = 'slideOut 0.3s ease-in';
       setTimeout(() => toast.remove(), 300);
     }, 5000);
   }
-  
-  // Add CSS animations
+
   if (!document.getElementById('tn-toast-styles')) {
     const style = document.createElement('style');
     style.id = 'tn-toast-styles';
@@ -819,14 +822,25 @@
           webhookUrl: urlEl.value.trim(),
           'tc-csrf-token': getCsrfToken()
         })
-      }).then(r => r.json());
-      
-      if (response.success) {
+      });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        testResult.className = 'tn-test-result tn-test-error';
+        testResult.textContent = 'Server error: Invalid response format';
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
         testResult.className = 'tn-test-result tn-test-success';
         testResult.textContent = 'Connection successful!';
       } else {
         testResult.className = 'tn-test-result tn-test-error';
-        testResult.textContent = 'Connection failed: ' + (response.message || 'Unknown error');
+        testResult.textContent = 'Connection failed: ' + (data.message || 'Unknown error');
       }
     } catch (error) {
       testResult.className = 'tn-test-result tn-test-error';
@@ -845,8 +859,7 @@
     if (!validateUrl() || !validateThreshold()) {
       return;
     }
-    
-    // Check if at least one trigger is selected
+
     const triggers = ['onStart', 'onSuccess', 'onFailure', 'onStall', 'buildLongerThanAverage', 'useBuildLongerThan'];
     const hasSelectedTrigger = triggers.some(id => document.getElementById(id).checked);
     
@@ -871,8 +884,7 @@
       branchFilter: document.getElementById('branchFilter').value.trim(),
       'tc-csrf-token': getCsrfToken()
     });
-    
-    // Only set ONE of projectId or buildTypeId, not both
+
     const buildTypeId = document.getElementById('buildTypeId')?.value;
     if (buildTypeId) {
       params.set('buildTypeId', buildTypeId);
@@ -892,14 +904,24 @@
           'X-TC-CSRF-Token': getCsrfToken()
         },
         body: params
-      }).then(r => r.json());
-      
-      if (response.success) {
+      });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        showToast('Server error: Invalid response format', 'error');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
         showToast('Webhook added successfully!', 'success');
         refreshWebhooksList();
         resetForm();
       } else {
-        showToast('Failed to add webhook: ' + (response.error || 'Unknown error'), 'error');
+        showToast('Failed to add webhook: ' + (data.error || 'Unknown error'), 'error');
       }
     } catch (error) {
       showToast('Error adding webhook: ' + error.message, 'error');
@@ -909,15 +931,15 @@
     }
   }
 
-  // Delete Webhook
-  window.deleteWebhook = async function(webhookUrl) {
+  // Delete Webhook - uses index, URL resolved server-side
+  window.deleteWebhook = async function(webhookIndex) {
     if (!confirm('Are you sure you want to delete this webhook?')) return;
-    
+
     const params = new URLSearchParams({
-      webhookUrl: webhookUrl,
+      webhookIndex: webhookIndex,
       'tc-csrf-token': getCsrfToken()
     });
-    
+
     // Only set ONE of projectId or buildTypeId, not both
     const buildTypeId = document.getElementById('buildTypeId')?.value;
     if (buildTypeId) {
@@ -925,10 +947,10 @@
     } else {
       params.set('projectId', document.getElementById('projectId').value);
     }
-    
+
     // Add action=delete to params for POST request
     params.set('action', 'delete');
-    
+
     try {
       const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>', {
         method: 'POST',
@@ -938,7 +960,7 @@
         },
         body: params
       });
-      
+
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
@@ -947,9 +969,9 @@
         showToast('Server error: Invalid response format', 'error');
         return;
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         showToast('Webhook deleted successfully!', 'success');
         refreshWebhooksList();
@@ -960,14 +982,14 @@
       showToast('Error deleting webhook: ' + error.message, 'error');
     }
   }
-  
-  // Toggle Webhook Enable/Disable
-  window.toggleWebhook = async function(webhookUrl, currentStatus) {
+
+  // Toggle Webhook Enable/Disable - uses index, URL resolved server-side
+  window.toggleWebhook = async function(webhookIndex, currentStatus) {
     const params = new URLSearchParams({
-      webhookUrl: webhookUrl,
+      webhookIndex: webhookIndex,
       'tc-csrf-token': getCsrfToken()
     });
-    
+
     // Only set ONE of projectId or buildTypeId, not both
     const buildTypeId = document.getElementById('buildTypeId')?.value;
     if (buildTypeId) {
@@ -975,10 +997,10 @@
     } else {
       params.set('projectId', document.getElementById('projectId').value);
     }
-    
+
     // Add action=toggle to params for POST request
     params.set('action', 'toggle');
-    
+
     try {
       const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>', {
         method: 'POST',
@@ -988,7 +1010,7 @@
         },
         body: params
       });
-      
+
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
@@ -997,9 +1019,9 @@
         showToast('Server error: Invalid response format', 'error');
         return;
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         const newStatus = data.enabled ? 'enabled' : 'disabled';
         showToast('Webhook ' + newStatus + ' successfully!', 'success');
@@ -1011,14 +1033,14 @@
       showToast('Error toggling webhook: ' + error.message, 'error');
     }
   }
-  
-  // Toggle Local Webhook (for inherited webhooks in build configuration)
-  window.toggleLocalWebhook = async function(webhookUrl, currentlyDisabled) {
+
+  // Toggle Local Webhook (for inherited webhooks in build configuration) - uses index, URL resolved server-side
+  window.toggleLocalWebhook = async function(webhookIndex, currentlyDisabled) {
     const params = new URLSearchParams({
-      webhookUrl: webhookUrl,
+      webhookIndex: webhookIndex,
       'tc-csrf-token': getCsrfToken()
     });
-    
+
     const buildTypeId = document.getElementById('buildTypeId')?.value;
     if (buildTypeId) {
       params.set('buildTypeId', buildTypeId);
@@ -1073,11 +1095,21 @@
     }
     
     try {
-      const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>?' + params.toString())
-        .then(r => r.json());
-      
-      if (response.success && response.webhooks) {
-        const webhooks = response.webhooks;
+      const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>?' + params.toString());
+
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        showToast('Server error: Invalid response format', 'error');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.webhooks) {
+        const webhooks = data.webhooks;
         updateWebhookCount(webhooks.length);
         
         if (webhooks.length === 0) {
@@ -1098,12 +1130,10 @@
   }
 
   function renderWebhooks(webhooks) {
-    const html = webhooks.map(webhook => {
+    const html = webhooks.map((webhook, index) => {
       const platformIcon = getPlatformIcon(webhook.platform);
-      const displayUrl = webhook.url.length > 60 
-        ? webhook.url.substring(0, 40) + '...' + webhook.url.substring(webhook.url.length - 15)
-        : webhook.url;
-      
+      const displayUrl = webhook.platform + ' Webhook (********)';
+
       const triggers = [];
       if (webhook.onStart) triggers.push('<span class="tn-trigger-tag">On Start</span>');
       if (webhook.onSuccess) triggers.push('<span class="tn-trigger-tag tn-trigger-tag-success">On Success</span>');
@@ -1111,18 +1141,16 @@
       if (webhook.onStall) triggers.push('<span class="tn-trigger-tag tn-trigger-tag-warning">On Stall</span>');
       if (webhook.buildLongerThan !== null) triggers.push('<span class="tn-trigger-tag tn-trigger-tag-info">&gt; ' + webhook.buildLongerThan + 's</span>');
       if (webhook.buildLongerThanAverage) triggers.push('<span class="tn-trigger-tag tn-trigger-tag-info">&gt; Average</span>');
-      
-      // Escape the URL for use in onclick attribute
-      const escapedUrl = webhook.url.replace(/'/g, "\\'").replace(/"/g, '\\"');
-      
+
+      // Use index instead of URL for security - URL never exposed to client
       return `
-        <div class="tn-webhook-item" data-webhook-url="` + webhook.url + `">
+        <div class="tn-webhook-item" data-webhook-index="` + index + `">
           <div class="tn-webhook-platform">` + platformIcon + `</div>
           <div class="tn-webhook-info">
             <div class="tn-webhook-url">` + displayUrl + `</div>
             <div class="tn-webhook-triggers">` + triggers.join('') + `</div>
           </div>
-          <button class="tn-webhook-delete" onclick="deleteWebhook('` + escapedUrl + `')">
+          <button class="tn-webhook-delete" onclick="deleteWebhook(` + index + `)">
             <svg viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
             </svg>
@@ -1130,7 +1158,7 @@
         </div>
       `;
     }).join('');
-    
+
     webhooksList.innerHTML = html;
   }
 

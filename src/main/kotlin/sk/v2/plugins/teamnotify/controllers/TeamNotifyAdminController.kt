@@ -23,16 +23,12 @@ class TeamNotifyAdminController(
 
     override fun doHandle(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
         val path = request.requestURI ?: ""
-        
-        // Handle API requests
+
         if (path.endsWith("/api.html")) {
             return handleApiRequest(request, response)
         }
-        
-        // Handle regular page request
+
         val mv = ModelAndView(pluginDescriptor.getPluginResourcesPath("teamNotifyAdmin.jsp"))
-        
-        // Collect all webhook configurations from all projects
         val allWebhooks = webhookManager.getAllWebhooks()
         
         mv.model["allWebhooks"] = allWebhooks
@@ -43,50 +39,63 @@ class TeamNotifyAdminController(
     
     private fun handleApiRequest(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
         response.contentType = "application/json; charset=utf-8"
-        
+
         val action = request.getParameter("action")
-        val webhookUrl = request.getParameter("webhookUrl")
+        val webhookIndexStr = request.getParameter("webhookIndex")
         val projectId = request.getParameter("projectId")
         val buildTypeId = request.getParameter("buildTypeId")
-        
+        val allWebhooks = webhookManager.getAllWebhooks()
+
+        val webhookIndex = webhookIndexStr?.toIntOrNull()
+        if (webhookIndex == null || webhookIndex < 0 || webhookIndex >= allWebhooks.size) {
+            response.status = 400
+            response.writer.write("""{"success":false,"error":"Invalid webhook index"}""")
+            return null
+        }
+
+        val targetWebhook = allWebhooks[webhookIndex]
+        val webhookUrl = targetWebhook.webhook.url
+        val effectiveProjectId = if (projectId.isNullOrBlank() || projectId == "null") targetWebhook.projectId else projectId
+        val effectiveBuildTypeId = if (buildTypeId.isNullOrBlank() || buildTypeId == "null") targetWebhook.buildTypeId else buildTypeId
+
         when (action) {
             "delete" -> {
-                if (webhookUrl.isNullOrBlank()) {
-                    response.status = 400
-                    response.writer.write("""{"success":false,"error":"Webhook URL is required"}""")
-                    return null
-                }
-                
-                val webhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
-                val removed = webhooks.removeIf { it.url == webhookUrl }
-                
-                if (removed) {
-                    webhookManager.saveWebhooksForEntity(projectId, buildTypeId, webhooks)
-                    response.writer.write("""{"success":true,"message":"Webhook deleted successfully"}""")
-                } else {
-                    response.status = 404
-                    response.writer.write("""{"success":false,"error":"Webhook not found"}""")
+                try {
+                    val webhooks = webhookManager.getWebhooksForEntity(effectiveProjectId, effectiveBuildTypeId).toMutableList()
+                    val removed = webhooks.removeIf { it.url == webhookUrl }
+
+                    if (removed) {
+                        webhookManager.saveWebhooksForEntity(effectiveProjectId, effectiveBuildTypeId, webhooks)
+                        response.writer.write("""{"success":true,"message":"Webhook deleted successfully"}""")
+                    } else {
+                        response.status = 404
+                        response.writer.write("""{"success":false,"error":"Webhook not found"}""")
+                    }
+                } catch (e: Exception) {
+                    response.status = 500
+                    val errorMsg = e.message?.replace("\"", "\\\"") ?: "Unknown error"
+                    response.writer.write("""{"success":false,"error":"Failed to delete webhook: $errorMsg"}""")
                 }
             }
             "toggle" -> {
-                if (webhookUrl.isNullOrBlank()) {
-                    response.status = 400
-                    response.writer.write("""{"success":false,"error":"Webhook URL is required"}""")
-                    return null
-                }
-                
-                val webhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
-                val webhookIndex = webhooks.indexOfFirst { it.url == webhookUrl }
-                
-                if (webhookIndex != -1) {
-                    val oldWebhook = webhooks[webhookIndex]
-                    val newWebhook = oldWebhook.copy(enabled = !oldWebhook.enabled)
-                    webhooks[webhookIndex] = newWebhook
-                    webhookManager.saveWebhooksForEntity(projectId, buildTypeId, webhooks)
-                    response.writer.write("""{"success":true,"enabled":${newWebhook.enabled}}""")
-                } else {
-                    response.status = 404
-                    response.writer.write("""{"success":false,"error":"Webhook not found"}""")
+                try {
+                    val webhooks = webhookManager.getWebhooksForEntity(effectiveProjectId, effectiveBuildTypeId).toMutableList()
+                    val idx = webhooks.indexOfFirst { it.url == webhookUrl }
+
+                    if (idx != -1) {
+                        val oldWebhook = webhooks[idx]
+                        val newWebhook = oldWebhook.copy(enabled = !oldWebhook.enabled)
+                        webhooks[idx] = newWebhook
+                        webhookManager.saveWebhooksForEntity(effectiveProjectId, effectiveBuildTypeId, webhooks)
+                        response.writer.write("""{"success":true,"enabled":${newWebhook.enabled}}""")
+                    } else {
+                        response.status = 404
+                        response.writer.write("""{"success":false,"error":"Webhook not found"}""")
+                    }
+                } catch (e: Exception) {
+                    response.status = 500
+                    val errorMsg = e.message?.replace("\"", "\\\"") ?: "Unknown error"
+                    response.writer.write("""{"success":false,"error":"Failed to toggle webhook: $errorMsg"}""")
                 }
             }
             else -> {
@@ -94,7 +103,7 @@ class TeamNotifyAdminController(
                 response.writer.write("""{"success":false,"error":"Invalid action"}""")
             }
         }
-        
+
         return null
     }
 }

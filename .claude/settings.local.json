@@ -13,7 +13,8 @@
       "WebSearch",
       "WebFetch(domain:javadoc.jetbrains.net)",
       "WebFetch(domain:plugins.jetbrains.com)",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "Bash(gradle-8.14.3/bin/gradle:*)"
     ],
     "deny": [],
     "ask": []

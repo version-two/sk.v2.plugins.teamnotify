@@ -1,29 +1,122 @@
 # Changelog
 
+## [1.2.2] - 2025-12-16
+
+### 🐛 Bug Fixes
+
+#### Fixed Webhook Enable/Disable and Delete Operations
+- **Fixed "Invalid webhook index" error** when deleting or toggling webhooks
+- **Fixed JavaScript syntax error** (`expected expression, got ','`) when clicking enable/disable buttons
+- **Added missing `varStatus` to forEach loops** - JSP iteration now properly tracks index for webhook operations
+- **Fixed index mismatch for build configurations** - Build config pages show inherited + local webhooks, but operations were using wrong index source
+- **Properly handle inherited vs local webhooks** - Delete/toggle operations now correctly distinguish between:
+  - Build-type specific webhooks (can be deleted/toggled directly)
+  - Inherited webhooks from parent projects (use "local disable" toggle instead)
+- **Fixed enum comparison** - Controller now properly compares `WebhookSource.BUILD_TYPE` enum instead of string
+
+### 📋 Technical Details
+- `NotifierSettingsController.kt`: Refactored delete/toggle handlers to use `webhooksWithSource` for build configurations
+- `editNotifierSettings.jsp`: Added `varStatus="status"` to both `forEach` loops (lines 308, 467)
+- Improved error messages for inherited webhook operations
+
+### 🔢 Version Info
+- Version: 1.2.2
+- API Compatibility: TeamCity 2025.07+
+- Release Date: December 16, 2025
+
+---
+
+## [1.2.1] - 2025-11-12
+
+### 🔒 Critical Security Fixes
+
+#### Webhook URL Exposure Vulnerability Patched
+- **Removed webhook URLs from HTML attributes** - No more sensitive URLs in `data-webhook-url` attributes
+- **Implemented index-based webhook references** - All client-side operations now use secure array indices
+- **Masked webhook URLs in UI** - URLs display as "Platform Webhook (********)" instead of actual URLs
+- **Secured admin page** - Admin interface no longer exposes webhook URLs in HTML
+- **Protected sensitive tokens** - Webhook authentication tokens are no longer accessible from browser inspector
+
+**Impact:** This prevents webhook URLs from being exposed to anyone with browser access to your TeamCity server. Upgrade recommended immediately.
+
+### 📝 Documentation & Configuration
+
+#### Simplified DSL Configuration
+- **Streamlined versioned settings approach** - DSL configuration now uses TeamCity's standard `buildFeature` system exclusively
+- **Removed custom DSL extensions** - No longer requires custom imports like `import sk.v2.plugins.teamnotify.dsl.*`
+- **Standardized syntax** - All webhook configuration uses consistent `buildFeature` blocks with `param()` calls
+- **Completely rewritten documentation:**
+  - README.md updated with correct DSL examples
+  - DSL_USAGE.md fully rewritten to reflect simplified approach
+  - TESTING.md updated with accurate test file references
+  - Removed all references to non-existent fluent DSL API
+- **Backward compatible** - Existing versioned settings configurations continue to work without changes
+
+**Migration Note:** The standard `buildFeature` approach (using `type = "teamnotify.webhook"`) has been the recommended method since 1.1.1 and remains the only supported DSL configuration method.
+
+#### Enhanced Build System
+- **Production build flag added** - Use `-Prelease` flag to create production builds without SNAPSHOT suffix
+  - Development builds: `./gradlew serverPlugin` → `team-notify-1.2.1+153-SNAPSHOT.zip`
+  - Production builds: `./gradlew serverPlugin -Prelease` → `team-notify-1.2.1+153.zip`
+- **Auto-incrementing build numbers** - Build number automatically increments with each build
+
+### 🎨 UI/UX Improvements
+
+#### TeamNotify Admin Menu Relocated
+- **Moved to Integrations section** - Admin menu item now appears under "Integrations" instead of "Server-related"
+- **Better organization** - More logical placement alongside other third-party integrations
+
+#### Character Encoding Fixes
+- **Fixed Unicode display issues** - Replaced problematic Unicode characters with ASCII equivalents:
+  - Arrow characters (→) replaced with `>`
+  - Bullet points (•) replaced with `*`
+  - Multiplication sign (×) replaced with HTML entity `&times;`
+- **Improved cross-platform compatibility** - Help text now displays correctly on all systems
+- **Fixed garbled characters** in webhook setup instructions
+
+### 🐛 Bug Fixes
+
+#### Admin Page Improvements
+- **Fixed CSRF token for restore backup** - Backup restore function now properly authenticated
+- **Added "On Cancel" trigger display** - Cancel trigger now visible in global webhook overview
+- **Fixed webhook data persistence** - Webhook URLs properly stored server-side only
+
+### 📋 Technical Details
+- Refactored webhook identification system from URL-based to index-based
+- Enhanced security by removing all client-side URL exposure
+- Improved character encoding for better international support
+- Fixed CSRF token handling in admin operations
+- Simplified DSL implementation to use TeamCity's native build feature system
+- Updated project structure documentation to reflect removed DSL package
+
+### 🔢 Version Info
+- Version: 1.2.1
+- Build: 153
+- API Compatibility: TeamCity 2025.07+
+- Release Date: November 12, 2025
+
+---
+
 ## [1.2.0] - 2025-09-13
 
 ### 🎯 New Features
 
-#### Build Cancelled Trigger Support
-- **Added `onCancel` trigger** for notifications when builds are cancelled
-- **Platform-specific formatting:**
-  - Slack: `:no_entry_sign:` emoji with red color (#dc3545)
-  - Teams: `🚫` emoji with red theme color
-  - Discord: `🚫` emoji with red embed color (#E74C3C)
+#### Build Canceled Trigger Support
+- **Added `onCancel` trigger** for notifications when builds are canceled
 - **Full integration across:**
   - Web UI with dedicated checkbox and visual indicator
-  - Kotlin DSL support via `onCancel()` lifecycle trigger
+  - Kotlin DSL support via `webhook.onCancel` parameter
   - TeamCity listener for `buildInterrupted` events
   - Proper serialization and persistence
 
 #### Enhanced Notification Titles
 - **Detailed context in every notification** with format: `[Project] - [Build Config] - Build #[Number] [Status]`
-- **Example:** `cloudweb.sk - Release - Build #73 Cancelled`
-- **Consistent emoji indicators** across all platforms:
+- **Example:** `cloudweb.sk - Release - Build #73 Canceled`
+- **Consistent emoji and color indicators** across all platforms:
   - ▶️ Started (blue)
   - ✅ Success (green)
   - ❌ Failed (red)
-  - 🚫 Cancelled (red)
+  - 🚫 Canceled (red)
   - ⚠️ Stalled (orange)
   - 🎉 Fixed (purple)
 - **Makes notifications instantly identifiable** without opening TeamCity
@@ -36,7 +129,9 @@
 - **Smart artifact display** - Only shown for completed builds (success, failure, fixed)
 - **Fallback to artifact browser** when individual artifacts can't be determined
 - **Changes only in "Build Started"** notifications - reduces noise in other notifications
-- **Cleaner notifications** for cancelled, stalled, and in-progress builds
+- **Cleaner notifications** for canceled, stalled, and in-progress builds
+
+---
 
 ## [1.1.1] - Previous Release
 
@@ -71,10 +166,10 @@
 #### Versioned Settings Support (Commit 48e68df)
 - **Full Kotlin DSL support** for TeamCity versioned settings
 - **Configure webhooks as code** in `.teamcity/settings.kts`
-- **Type-safe DSL with:**
-  - Project and build type extensions
-  - Platform-specific helpers (slack, teams, discord)
-  - Trigger configuration builders
+- **Using TeamCity's standard buildFeature system:**
+  - No custom imports required
+  - Standard `param()` configuration syntax
+  - Full parameter reference support
 - **Comprehensive documentation:**
   - DSL usage guide with examples
   - Security best practices
@@ -111,7 +206,7 @@
 
 ### 🔢 Version Info
 - Version: 1.1.1
-- Build: 83
+- Build: (historical)
 - API Compatibility: TeamCity 2025.07+
 
 ### 🐛 Bug Fixes
