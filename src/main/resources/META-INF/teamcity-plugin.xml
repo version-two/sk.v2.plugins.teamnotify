@@ -11,5 +11,9 @@
       <url>https://versiontwo.sk</url>
     </vendor>
   </info>
+  <!-- The plugin targets the 2026.1 API and is compiled for Java 21 (which 2026.1 requires).
+       Pinning the minimum build makes TeamCity refuse to load it on older servers with a clear
+       message instead of failing later with an UnsupportedClassVersionError. 2026.1 == build 222521. -->
+  <requirements min-build="222521" />
   <deployment use-separate-classloader="false" />
 </teamcity-plugin>

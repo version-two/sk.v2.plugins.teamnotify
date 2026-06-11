@@ -113,8 +113,8 @@ Run tests with:
 ## Known Issues and Limitations
 
 ### Microsoft Teams
-- Office 365 Connector webhooks were retired on March 31, 2026; migrate to a Power Automate Workflow webhook
-- Prefer the new PowerPlatform format (`environment.api.powerplatform.com`) over legacy `logic.azure.com` URLs
+- Office 365 Connector webhooks retire May 18–22, 2026; migrate to a Power Automate Workflow webhook
+- Prefer the new PowerPlatform format (`environment.api.powerplatform.com`); the legacy `logic.azure.com` host stopped delivering Nov 30, 2025
 
 ### Branch Filters
 - Use TeamCity branch filter syntax: `+:main,-:feature/*`

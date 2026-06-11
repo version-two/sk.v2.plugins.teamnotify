@@ -48,7 +48,7 @@ https://prod-27.webhook.office.com/webhookb2/11111111-2222-3333-4444-55555555555
 ```
 
 ### Power Automate (Legacy - Azure Logic Apps)
-⚠️ **Deprecated:** Office 365 Connectors were retired on March 31, 2026. Use a Power Automate Workflow webhook instead.
+⚠️ **Dead since Nov 30, 2025:** the `logic.azure.com` host no longer delivers – Microsoft migrated these flows to the `powerplatform.com` host. (Separately, classic Office 365 Connectors retire May 18–22, 2026.) Use a current Power Automate Workflow webhook instead.
 ```
 https://prod-123.logic.azure.com/workflows/abcd1234efgh5678ijkl9012mnop3456/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=AbCdEfGhIjKlMnOpQrStUvWxYz0123456789
 https://test-environment.logic.azure.com/workflows/12345678-1234-1234-1234-123456789012/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0

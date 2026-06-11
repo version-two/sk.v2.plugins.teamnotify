@@ -28,6 +28,10 @@
 - The stalled-build timer thread is now a daemon and one failing stall notification no longer aborts the rest of that check pass.
 - **DSL webhook parsing is more robust** – blank URLs are rejected, the platform value is matched case-insensitively, and a non-positive `buildLongerThan` is ignored.
 - Removed a duplicate `gson` dependency declaration in the build script.
+- **A single build no longer fires duplicate notifications** – when both `onFailure` and `onFirstFailure` (or `onSuccess` and `onBuildFixed`) are enabled, only the more specific "First failure"/"Build fixed" message is sent. The previous-build lookup is now done once per build instead of once per webhook.
+- **The Slack "Test" button now sends the real `attachments` payload** instead of a bare `{"text": …}` message, so a passing test matches actual delivery.
+- **The plugin descriptor now pins a minimum TeamCity build (2026.1 / 222521)** so installing on an older server fails with a clear message instead of a class-version error.
+- Corrected the Teams/Office 365 Connector retirement date in the docs to the actual cutoff (May 18–22, 2026) and flagged the legacy `logic.azure.com` host as non-delivering since November 30, 2025.
 
 ### 🐛 Bug Fixes (admin & UI)
 - **Stalled-build notifications now honor the enabled flag, locally-disabled state, and branch filter**, consistent with the other triggers.

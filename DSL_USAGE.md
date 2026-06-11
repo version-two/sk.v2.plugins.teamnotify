@@ -394,17 +394,17 @@ buildFeature {
 }
 ```
 
-**Teams webhook URL formats (as of 2025):**
-- Standard: `https://{tenant}.webhook.office.com/webhookb2/{guid}/IncomingWebhook/{id}/{guid}`
-- Classic: `https://outlook.office.com/webhook/{guid}/IncomingWebhook/{id}/{guid}`
-- Power Automate (New): `https://{id}.environment.api.powerplatform.com/powerautomate/automations/direct/workflows/...`
-- Power Automate (Legacy - deprecated Nov 2025): `https://{id}.logic.azure.com/workflows/...`
+**Teams webhook URL formats (as of 2026):**
+- Power Automate (New, recommended): `https://{id}.environment.api.powerplatform.com/powerautomate/automations/direct/workflows/...`
+- Workflows via `webhook.office.com`: `https://{tenant}.webhook.office.com/webhookb2/{guid}/IncomingWebhook/{id}/{guid}`
+- Power Automate (Legacy `logic.azure.com`): `https://{id}.logic.azure.com/workflows/...` – **stopped delivering Nov 30, 2025**; Microsoft migrated these flows to the `powerplatform.com` host. Re-create the workflow to obtain a current URL.
+- Classic O365 Connector: `https://outlook.office.com/webhook/{guid}/IncomingWebhook/{id}/{guid}` – legacy connector, retiring (see below).
 
 **Note:** Microsoft is transitioning to Power Automate-based workflows. The new format using `environment.api.powerplatform.com` is the recommended approach for new webhooks.
 
 ### Microsoft Teams Power Automate Migration
 
-Microsoft is retiring Office 365 Connectors within Microsoft Teams. The retirement deadline has been extended to **March 31, 2026**. After this date, legacy connector webhooks will stop working.
+Microsoft is retiring Office 365 Connectors within Microsoft Teams. The final cutoff is **May 18–22, 2026** (rollout begins May 18, completes May 22); after this, connector webhooks stop working entirely. (Separately, Power Automate flows on the legacy `logic.azure.com` host already stopped working on November 30, 2025 – use the `powerplatform.com` host instead.)
 
 **Migration Steps:**
 1. Create a new Power Automate Workflow in Microsoft Teams

@@ -295,11 +295,22 @@ class WebhookService(
 
     fun testWebhook(url: String, platform: WebhookPlatform, authHeaderName: String? = null, authHeaderValue: String? = null): TestResult {
         val payload = when (platform) {
-            WebhookPlatform.SLACK -> """{"text": "Test message from TeamNotify"}"""
+            // Use the same "attachments" envelope the real Slack notifications use, so a successful
+            // test confirms the endpoint accepts the actual delivery format (not just a bare {"text"}).
+            WebhookPlatform.SLACK -> """
+                {
+                  "attachments": [{
+                    "color": "#2eb886",
+                    "title": "✅ TeamNotify test message",
+                    "text": "This is a test message from TeamCity TeamNotify.",
+                    "mrkdwn_in": ["text"]
+                  }]
+                }
+            """.trimIndent()
             // Teams must use the same Adaptive Card "message"/"attachments" envelope the real
             // notifications use. The legacy {"text": ...} MessageCard shape is being retired with
-            // Office 365 Connectors (2026-03-31) and is rejected by Power Automate Workflow webhooks,
-            // so testing with it would not match real delivery.
+            // Office 365 Connectors (final cutoff 2026-05-22) and is rejected by Power Automate
+            // Workflow webhooks, so testing with it would not match real delivery.
             WebhookPlatform.TEAMS -> """
                 {
                   "type": "message",

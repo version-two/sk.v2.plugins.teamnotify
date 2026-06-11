@@ -139,12 +139,13 @@ For safety, URLs are validated per platform. Expected formats include:
 
 *   Slack: `https://hooks.slack.com/services/...`
 *   Microsoft Teams:
-    *   Standard: `https://{tenant}.webhook.office.com/webhookb2/...`
-    *   Classic: `https://outlook.office.com/webhook/...`
-    *   Power Automate: `https://{id}.environment.api.powerplatform.com/...` or `https://{id}.logic.azure.com/...`
+    *   Power Automate Workflows (current, recommended): `https://{id}.environment.api.powerplatform.com/...`
+    *   Workflows via `webhook.office.com`: `https://{tenant}.webhook.office.com/webhookb2/...`
+    *   Power Automate (legacy `logic.azure.com`): `https://{id}.logic.azure.com/...` – **dead since Nov 30, 2025**; Microsoft migrated these to the `powerplatform.com` host. Still accepted for validation but will not deliver. Re-create the workflow to get a current URL.
+    *   Classic O365 Connector: `https://outlook.office.com/webhook/...` – legacy, see retirement note below.
 *   Discord: `https://discord.com/api/webhooks/{id}/{token}`
 
-> **Note:** Microsoft is retiring Office 365 Connectors (deadline: March 31, 2026). New webhooks should use Power Automate Workflows. The plugin supports optional authentication headers for authenticated Power Automate workflows. See [DSL_USAGE.md](DSL_USAGE.md) for migration details.
+> **Note:** Microsoft is retiring Office 365 Connectors in Teams; the final cutoff is **May 18–22, 2026**, after which connector webhooks stop working entirely. New webhooks should use Power Automate Workflows, which expect the Adaptive Card envelope this plugin already sends. The plugin supports optional authentication headers for authenticated Power Automate workflows. See [DSL_USAGE.md](DSL_USAGE.md) for migration details.
 
 ## Development
 
