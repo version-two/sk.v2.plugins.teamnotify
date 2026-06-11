@@ -34,11 +34,16 @@ class BuildStallTracker {
             }
         }
         
-        // Process and remove stalled builds
+        // Process and remove stalled builds. Guard each action: one failing notification must not
+        // abort the loop and silently skip the remaining stalled builds in this pass.
         for (buildId in stalledBuilds) {
             LOG.info("Build $buildId has stalled")
             runningBuilds.remove(buildId) // Prevent multiple notifications
-            action(buildId)
+            try {
+                action(buildId)
+            } catch (e: Exception) {
+                LOG.warn("Failed to process stalled build $buildId", e)
+            }
         }
     }
 }

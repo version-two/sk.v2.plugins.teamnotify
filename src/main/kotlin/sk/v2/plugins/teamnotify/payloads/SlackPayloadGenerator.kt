@@ -81,7 +81,10 @@ class SlackPayloadGenerator : PayloadGenerator {
                 val shortMsg = if (msg.length > 80) msg.substring(0, 77) + "…" else msg
                 val rev = (ch.version ?: "").take(10)
                 val suffix = if (rev.isNotEmpty()) " `${rev}`" else ""
-                "• *${escape(who)}*: ${escape(shortMsg)}${suffix}"
+                // Do NOT escape here: the whole changesText block is JSON-escaped once at the point
+                // it is embedded into the payload (see the "footer" field below). Escaping here too
+                // would double-escape quotes/backslashes and render visible \" sequences.
+                "• *${who}*: ${shortMsg}${suffix}"
             }
             "*Recent Changes:*\n" + items.joinToString("\n")
         } else ""
@@ -111,6 +114,8 @@ class SlackPayloadGenerator : PayloadGenerator {
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
         .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
 
     private fun fieldJson(title: String, value: String, short: Boolean): String {
         return "{" +

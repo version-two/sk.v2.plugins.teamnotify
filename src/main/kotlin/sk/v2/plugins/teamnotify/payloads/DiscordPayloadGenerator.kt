@@ -40,9 +40,11 @@ class DiscordPayloadGenerator : PayloadGenerator {
         if (buildNo.isNotEmpty()) fields += fieldJson("Build #", buildNo, true)
         if (triggeredBy.isNotEmpty()) fields += fieldJson("Triggered by", triggeredBy, true)
 
-        // Build link - controlled by ctx.showBuildLink
+        // Build link - controlled by ctx.showBuildLink.
+        // Field values are JSON-escaped once inside fieldJson(); do NOT pre-escape here or the value
+        // is double-escaped and renders literal \" / \\ sequences in Discord.
         if (ctx.showBuildLink && buildUrl.isNotEmpty()) {
-            fields += fieldJson("Build", "[Open in TeamCity](${escape(buildUrl)})", false)
+            fields += fieldJson("Build", "[Open in TeamCity](${buildUrl})", false)
         }
 
         // Artifacts - controlled by ctx.showArtifacts
@@ -59,12 +61,12 @@ class DiscordPayloadGenerator : PayloadGenerator {
             if (ctx.artifacts.isNotEmpty()) {
                 // Show individual artifact download links
                 val artifactLinks = ctx.artifacts.take(5).map { artifact ->
-                    "[${escape(artifact.name)}](${escape(artifact.downloadUrl)})"
+                    "[${artifact.name}](${artifact.downloadUrl})"
                 }.joinToString(" • ")
                 fields += fieldJson("Artifacts", artifactLinks, false)
             } else if (artifactsUrl.isNotEmpty()) {
                 // Fallback to artifact browser link
-                fields += fieldJson("Artifacts", "[Browse All Artifacts](${escape(artifactsUrl)})", false)
+                fields += fieldJson("Artifacts", "[Browse All Artifacts](${artifactsUrl})", false)
             }
         }
 
@@ -76,7 +78,7 @@ class DiscordPayloadGenerator : PayloadGenerator {
                 val shortMsg = if (msg.length > 80) msg.substring(0, 77) + "…" else msg
                 val rev = (ch.version ?: "").take(10)
                 val suffix = if (rev.isNotEmpty()) " (${rev})" else ""
-                "• ${escape(who)}: ${escape(shortMsg)}${escape(suffix)}"
+                "• ${who}: ${shortMsg}${suffix}"
             }
             val value = items.joinToString("\n")
             fields += fieldJson("Changes", value, false)
@@ -106,6 +108,8 @@ class DiscordPayloadGenerator : PayloadGenerator {
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
         .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
 
     private fun fieldJson(name: String, value: String, inline: Boolean): String {
         return "{" +

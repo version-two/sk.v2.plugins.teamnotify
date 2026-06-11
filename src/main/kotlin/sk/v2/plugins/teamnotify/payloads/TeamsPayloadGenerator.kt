@@ -52,7 +52,9 @@ class TeamsPayloadGenerator : PayloadGenerator {
                 val shortMsg = if (msg.length > 80) msg.substring(0, 77) + "…" else msg
                 val rev = (ch.version ?: "").take(10)
                 val suffix = if (rev.isNotEmpty()) " (${rev})" else ""
-                "• **${escape(who)}**: ${escape(shortMsg)}${suffix}"
+                // Do NOT escape here: changesText is JSON-escaped once where it is embedded into the
+                // card text below. Escaping here too would double-escape and show literal \" sequences.
+                "• **${who}**: ${shortMsg}${suffix}"
             }
             // Use real newlines; escape() converts them to the JSON \n escape so Teams renders line breaks.
             val changesText = items.joinToString("\n\n")

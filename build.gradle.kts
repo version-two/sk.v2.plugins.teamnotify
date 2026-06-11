@@ -62,7 +62,6 @@ dependencies {
     api("org.jetbrains.teamcity:common-api:2026.1") {
         exclude(group = "org.springframework")
     }
-    implementation("com.google.code.gson:gson:2.10.1")
 }
 
 // TeamCity 2026.1 requires Java 21 (its API jar is Java 21 bytecode), so build with a JDK 21

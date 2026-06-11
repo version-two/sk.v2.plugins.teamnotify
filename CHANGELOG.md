@@ -22,6 +22,12 @@
 - **Hardened the settings controller against open redirects** – `returnUrl`/`pageUrl`/`Referer` values are now restricted to same-origin relative paths, so an attacker-supplied absolute or protocol-relative URL can no longer bounce the user to another origin.
 - **Toast notifications render server/error messages as text, not HTML** – removes a DOM-based XSS sink in both the per-project and admin pages.
 - The `branchFilter` value returned to the UI is now fully JSON-escaped (previously only quotes were escaped).
+- **Recent-changes text is no longer double-escaped** – commit messages and committer names containing quotes, backslashes, or newlines were escaped twice in all three (Slack/Teams/Discord) generators and rendered with visible `\"` sequences; they are now escaped exactly once.
+- Slack and Discord payloads now also escape carriage-return and tab characters, so a commit message containing them can no longer produce invalid JSON.
+- **A saturated webhook queue can no longer run delivery on the build-event thread** – the executor now drops (and logs) the rejected notification instead of using a caller-runs policy, fully honoring the "never blocks build processing" guarantee.
+- The stalled-build timer thread is now a daemon and one failing stall notification no longer aborts the rest of that check pass.
+- **DSL webhook parsing is more robust** – blank URLs are rejected, the platform value is matched case-insensitively, and a non-positive `buildLongerThan` is ignored.
+- Removed a duplicate `gson` dependency declaration in the build script.
 
 ### 🐛 Bug Fixes (admin & UI)
 - **Stalled-build notifications now honor the enabled flag, locally-disabled state, and branch filter**, consistent with the other triggers.

@@ -120,8 +120,11 @@ class WebhookManager(
     }
     
     private fun parseFeatureToWebhook(params: Map<String, String>): WebhookConfiguration? {
-        val url = params["webhook.url"] ?: return null
-        val platformStr = params["webhook.platform"] ?: return null
+        // A blank/whitespace url is unusable; drop the feature rather than create a webhook that
+        // silently fails at dispatch time.
+        val url = params["webhook.url"]?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        // Accept platform case-insensitively so "slack"/"Slack"/"SLACK" all resolve, matching the UI.
+        val platformStr = params["webhook.platform"]?.trim()?.uppercase() ?: return null
 
         val platform = try {
             WebhookPlatform.valueOf(platformStr)
@@ -141,7 +144,7 @@ class WebhookManager(
             onFirstFailure = params["webhook.onFirstFailure"]?.toBoolean() ?: false,
             onBuildFixed = params["webhook.onBuildFixed"]?.toBoolean() ?: false,
             buildLongerThanAverage = params["webhook.buildLongerThanAverage"]?.toBoolean() ?: false,
-            buildLongerThan = params["webhook.buildLongerThan"]?.toIntOrNull(),
+            buildLongerThan = params["webhook.buildLongerThan"]?.toIntOrNull()?.takeIf { it > 0 },
             includeChanges = params["webhook.includeChanges"]?.toBoolean() ?: true,
             showBuildLink = params["webhook.showBuildLink"]?.toBoolean() ?: true,
             showArtifacts = params["webhook.showArtifacts"]?.toBoolean() ?: true,

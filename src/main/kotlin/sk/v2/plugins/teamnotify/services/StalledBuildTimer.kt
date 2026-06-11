@@ -15,7 +15,9 @@ class StalledBuildTimer(
     private val sBuildServer: SBuildServer
 ) : InitializingBean, DisposableBean {
 
-    private val timer = Timer()
+    // Daemon timer: if TeamCity unloads the plugin classloader before destroy() runs (e.g. a hot
+    // reload), a non-daemon Timer thread would survive and pin the old classloader, leaking it.
+    private val timer = Timer("teamnotify-stalled-build-timer", true)
 
     override fun afterPropertiesSet() {
         timer.schedule(object : TimerTask() {

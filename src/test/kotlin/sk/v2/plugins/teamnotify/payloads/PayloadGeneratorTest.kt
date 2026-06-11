@@ -503,4 +503,28 @@ class PayloadGeneratorTest {
         assertContains(teamsPayload, "artifact3.jar")
         assertContains(teamsPayload, "More artifacts")
     }
+
+    @Test
+    fun `change comment with a quote is JSON-escaped exactly once (not double-escaped)`() {
+        // Regression: previously the per-change line was escaped, then the whole changes block was
+        // escaped again, producing a literal backslash sequence (\\") in the rendered card.
+        val changes = listOf(
+            ChangeSummary(version = "abc123", user = "Jane \"JD\" Doe", comment = "Fix \"auth\" bug")
+        )
+        val ctx = createContext(status = NotificationStatus.SUCCESS, changes = changes)
+
+        for ((name, payload) in listOf(
+            "Slack" to slackGenerator.generatePayload(ctx),
+            "Teams" to teamsGenerator.generatePayload(ctx),
+            "Discord" to discordGenerator.generatePayload(ctx)
+        )) {
+            // The quote must appear escaped once...
+            assertContains(payload, "\\\"auth\\\"", message = "$name should escape the quote once")
+            // ...and never double-escaped (a literal backslash before the escaped quote).
+            assertFalse(
+                payload.contains("\\\\\""),
+                "$name double-escaped the change comment (found \\\\\")"
+            )
+        }
+    }
 }

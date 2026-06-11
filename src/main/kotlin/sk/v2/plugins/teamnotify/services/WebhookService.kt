@@ -22,6 +22,7 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.RejectedExecutionHandler
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -37,13 +38,20 @@ class WebhookService(
 
     // Notifications are delivered off the caller's thread. The build-event listener calls this on
     // TeamCity's event dispatch thread, and a blocking HTTP POST (up to 25s on timeout) per webhook
-    // must never stall build processing. The queue is bounded with a caller-runs policy so a flood
-    // of unresponsive webhooks degrades gracefully (backpressure) instead of growing without limit.
+    // must never stall build processing. The queue is bounded; when it saturates (e.g. a flood of
+    // builds while a webhook endpoint hangs) we DROP the rejected notification rather than run it on
+    // the caller's thread, because stalling the build-event thread is never acceptable for a
+    // best-effort notification. Each drop is logged so the saturation is visible to operators.
     private val executor: ExecutorService = ThreadPoolExecutor(
         4, 4, 0L, TimeUnit.MILLISECONDS,
         ArrayBlockingQueue(1000),
         ThreadFactory { r -> Thread(r, "teamnotify-webhook").apply { isDaemon = true } },
-        ThreadPoolExecutor.CallerRunsPolicy()
+        RejectedExecutionHandler { _, exec ->
+            if (!exec.isShutdown) {
+                LOG.warn("Webhook delivery queue is saturated; dropping a notification. " +
+                    "A webhook endpoint is likely slow or unreachable.")
+            }
+        }
     )
 
     override fun destroy() {
