@@ -295,15 +295,17 @@ class WebhookService(
 
     fun testWebhook(url: String, platform: WebhookPlatform, authHeaderName: String? = null, authHeaderValue: String? = null): TestResult {
         val payload = when (platform) {
-            // Use the same "attachments" envelope the real Slack notifications use, so a successful
-            // test confirms the endpoint accepts the actual delivery format (not just a bare {"text"}).
+            // Use the same attachment-wrapped Block Kit envelope the real Slack notifications use, so
+            // a successful test confirms the endpoint accepts the actual delivery format (not a bare
+            // {"text"} payload, and not the legacy attachment "actions" buttons that webhooks ignore).
             WebhookPlatform.SLACK -> """
                 {
                   "attachments": [{
                     "color": "#2eb886",
-                    "title": "✅ TeamNotify test message",
-                    "text": "This is a test message from TeamCity TeamNotify.",
-                    "mrkdwn_in": ["text"]
+                    "blocks": [{
+                      "type": "section",
+                      "text": { "type": "mrkdwn", "text": "*✅ TeamNotify test message*\nThis is a test message from TeamCity TeamNotify." }
+                    }]
                   }]
                 }
             """.trimIndent()

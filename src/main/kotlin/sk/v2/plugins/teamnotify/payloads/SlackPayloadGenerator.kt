@@ -5,9 +5,9 @@ class SlackPayloadGenerator : PayloadGenerator {
         val project = (ctx.projectName ?: "Unknown Project").trim()
         val config = (ctx.buildTypeName ?: "Unknown Config").trim()
         val buildNo = (ctx.buildNumber ?: "?").trim()
-        
+
         val titlePrefix = "$project - $config - Build #$buildNo"
-        
+
         val title = when (ctx.status) {
             NotificationStatus.STARTED -> ":arrow_forward: $titlePrefix Started"
             NotificationStatus.SUCCESS -> ":white_check_mark: $titlePrefix Successful"
@@ -20,6 +20,10 @@ class SlackPayloadGenerator : PayloadGenerator {
             NotificationStatus.LONGER_THAN_AVERAGE -> ":chart_with_upwards_trend: $titlePrefix - Longer Than Average"
         }
 
+        // The status color is applied as the attachment's left-border color. The message body itself
+        // is built with Block Kit blocks (the modern Slack format), because legacy attachment "actions"
+        // buttons are silently dropped by incoming webhooks. Incoming webhooks DO render Block Kit
+        // blocks (including URL buttons) nested inside an attachment, which keeps the colored bar.
         val color = when (ctx.status) {
             NotificationStatus.STARTED -> "#0088cc"     // blue
             NotificationStatus.SUCCESS -> "#2eb886"     // green
@@ -34,18 +38,44 @@ class SlackPayloadGenerator : PayloadGenerator {
         val buildUrl = (ctx.buildUrl ?: "").trim()
         val artifactsUrl = (ctx.artifactsUrl ?: "").trim()
 
-        val fields = mutableListOf<String>()
-        if (project.isNotEmpty()) fields += fieldJson("Project", project, true)
-        if (config.isNotEmpty()) fields += fieldJson("Build Config", config, true)
-        if (buildNo.isNotEmpty()) fields += fieldJson("Build #", buildNo, true)
-        if (triggeredBy.isNotEmpty()) fields += fieldJson("Triggered by", triggeredBy, true)
+        val blocks = mutableListOf<String>()
 
-        // Actions as buttons in Slack
+        // Title and message
+        blocks += section("*${title}*")
+        if (ctx.message.isNotBlank()) {
+            blocks += section(ctx.message)
+        }
+
+        // Facts as a two-column field section
+        val fields = mutableListOf<String>()
+        if (project.isNotEmpty()) fields += mrkdwnField("Project", project)
+        if (config.isNotEmpty()) fields += mrkdwnField("Build Config", config)
+        if (buildNo.isNotEmpty()) fields += mrkdwnField("Build #", buildNo)
+        if (triggeredBy.isNotEmpty()) fields += mrkdwnField("Triggered by", triggeredBy)
+        if (fields.isNotEmpty()) {
+            blocks += """{"type":"section","fields":[${fields.joinToString(",")}]}"""
+        }
+
+        // Recent changes - show for all notifications
+        if (ctx.changes.isNotEmpty()) {
+            val items = ctx.changes.take(3).map { ch ->
+                val who = (ch.user ?: "").ifBlank { "unknown" }
+                val msg = (ch.comment ?: "").replace("\n", " ").trim()
+                val shortMsg = if (msg.length > 80) msg.substring(0, 77) + "…" else msg
+                val rev = (ch.version ?: "").take(10)
+                val suffix = if (rev.isNotEmpty()) " `${rev}`" else ""
+                "• *${who}*: ${shortMsg}${suffix}"
+            }
+            // Built raw; section() applies the single JSON escape.
+            blocks += section("*Recent Changes:*\n" + items.joinToString("\n"))
+        }
+
+        // Action buttons (real Block Kit URL buttons - these render via incoming webhooks)
         val actions = mutableListOf<String>()
 
         // Build link - controlled by ctx.showBuildLink
         if (ctx.showBuildLink && buildUrl.isNotEmpty()) {
-            actions += actionJson("View Build", buildUrl, "primary")
+            actions += urlButton("View Build", buildUrl, primary = true)
         }
 
         // Only show artifacts for completed builds
@@ -61,53 +91,24 @@ class SlackPayloadGenerator : PayloadGenerator {
             if (ctx.artifacts.isNotEmpty()) {
                 // Add individual artifact download buttons (limit to 3 for space)
                 ctx.artifacts.take(3).forEach { artifact ->
-                    actions += actionJson(artifact.name, artifact.downloadUrl, "default")
+                    actions += urlButton(artifact.name, artifact.downloadUrl)
                 }
                 // If there are more artifacts, add a browse all button
                 if (ctx.artifacts.size > 3 && artifactsUrl.isNotEmpty()) {
-                    actions += actionJson("More artifacts...", artifactsUrl, "default")
+                    actions += urlButton("More artifacts...", artifactsUrl)
                 }
             } else if (artifactsUrl.isNotEmpty()) {
                 // Fallback to artifact browser button
-                actions += actionJson("Browse Artifacts", artifactsUrl, "default")
+                actions += urlButton("Browse Artifacts", artifactsUrl)
             }
         }
 
-        // Build changes text - show for all notifications
-        val changesText = if (ctx.changes.isNotEmpty()) {
-            val items = ctx.changes.take(3).map { ch ->
-                val who = (ch.user ?: "").ifBlank { "unknown" }
-                val msg = (ch.comment ?: "").replace("\n", " ").trim()
-                val shortMsg = if (msg.length > 80) msg.substring(0, 77) + "…" else msg
-                val rev = (ch.version ?: "").take(10)
-                val suffix = if (rev.isNotEmpty()) " `${rev}`" else ""
-                // Do NOT escape here: the whole changesText block is JSON-escaped once at the point
-                // it is embedded into the payload (see the "footer" field below). Escaping here too
-                // would double-escape quotes/backslashes and render visible \" sequences.
-                "• *${who}*: ${shortMsg}${suffix}"
-            }
-            "*Recent Changes:*\n" + items.joinToString("\n")
-        } else ""
-
-        val attachment = buildString {
-            append("{")
-            append("\"color\":\"").append(color).append("\",")
-            append("\"title\":\"").append(escape(title)).append("\",")
-            append("\"text\":\"").append(escape(ctx.message)).append("\",")
-            if (fields.isNotEmpty()) {
-                append("\"fields\":[").append(fields.joinToString(",")).append("],")
-            }
-            if (changesText.isNotEmpty()) {
-                append("\"footer\":\"").append(escape(changesText)).append("\",")
-            }
-            if (actions.isNotEmpty()) {
-                append("\"actions\":[").append(actions.joinToString(",")).append("],")
-            }
-            append("\"mrkdwn_in\":[\"text\",\"pretext\",\"footer\"]")
-            append("}")
+        if (actions.isNotEmpty()) {
+            blocks += """{"type":"actions","elements":[${actions.joinToString(",")}]}"""
         }
 
-        return "{\"attachments\":[${attachment}]}"
+        val attachment = """{"color":"${color}","blocks":[${blocks.joinToString(",")}]}"""
+        return """{"attachments":[${attachment}]}"""
     }
 
     private fun escape(s: String): String = s
@@ -117,20 +118,19 @@ class SlackPayloadGenerator : PayloadGenerator {
         .replace("\r", "\\r")
         .replace("\t", "\\t")
 
-    private fun fieldJson(title: String, value: String, short: Boolean): String {
-        return "{" +
-            "\"title\":\"" + escape(title) + "\"," +
-            "\"value\":\"" + escape(value) + "\"," +
-            "\"short\":" + short +
-            "}"
-    }
+    // A Block Kit section with a single mrkdwn text object. Receives RAW text and escapes once.
+    private fun section(rawMrkdwn: String): String =
+        """{"type":"section","text":{"type":"mrkdwn","text":"${escape(rawMrkdwn)}"}}"""
 
-    private fun actionJson(text: String, url: String, style: String): String {
-        return "{" +
-            "\"type\":\"button\"," +
-            "\"text\":\"" + escape(text) + "\"," +
-            "\"url\":\"" + escape(url) + "\"," +
-            "\"style\":\"" + style + "\"" +
-            "}"
+    // A single mrkdwn field for a two-column section: bold title above the value.
+    private fun mrkdwnField(title: String, value: String): String =
+        """{"type":"mrkdwn","text":"*${escape(title)}:*\n${escape(value)}"}"""
+
+    // A Block Kit URL button. The label is plain_text (Slack caps it at 75 chars). A URL button opens
+    // the link directly and needs no interactivity handler, so it works from a plain incoming webhook.
+    private fun urlButton(text: String, url: String, primary: Boolean = false): String {
+        val label = if (text.length > 75) text.substring(0, 74) + "…" else text
+        val styleField = if (primary) ""","style":"primary"""" else ""
+        return """{"type":"button","text":{"type":"plain_text","text":"${escape(label)}","emoji":true},"url":"${escape(url)}"${styleField}}"""
     }
 }

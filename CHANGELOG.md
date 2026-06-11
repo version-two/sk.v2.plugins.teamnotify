@@ -32,6 +32,8 @@
 - **The Slack "Test" button now sends the real `attachments` payload** instead of a bare `{"text": …}` message, so a passing test matches actual delivery.
 - **The plugin descriptor now pins a minimum TeamCity build (2026.1 / 222521)** so installing on an older server fails with a clear message instead of a class-version error.
 - Corrected the Teams/Office 365 Connector retirement date in the docs to the actual cutoff (May 18–22, 2026) and flagged the legacy `logic.azure.com` host as non-delivering since November 30, 2025.
+- **Slack "View Build" and artifact links now actually render** – they were emitted as legacy attachment action buttons, which Slack silently drops for incoming webhooks, so Slack users got no links at all. The Slack message is now built with Block Kit blocks (kept inside a colored attachment) and the links are real Block Kit URL buttons.
+- **Fixed Slack webhook URL validation** – it accepted a bogus `/workflows/` path that never existed and rejected the real Workflow Builder trigger format `hooks.slack.com/triggers/...`. Now accepts `/services/` (incoming webhooks) and `/triggers/` (Workflow Builder).
 
 ### 🐛 Bug Fixes (admin & UI)
 - **Stalled-build notifications now honor the enabled flag, locally-disabled state, and branch filter**, consistent with the other triggers.

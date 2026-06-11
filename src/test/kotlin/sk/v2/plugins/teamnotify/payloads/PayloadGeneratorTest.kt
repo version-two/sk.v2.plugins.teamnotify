@@ -144,6 +144,20 @@ class PayloadGeneratorTest {
     }
 
     @Test
+    fun `Slack build link is a Block Kit URL button, not a legacy attachment action`() {
+        // Incoming webhooks silently drop legacy attachment "actions" buttons, so the build link
+        // must be a real Block Kit URL button inside an actions block to actually render.
+        val ctx = createContext()
+        val payload = slackGenerator.generatePayload(ctx)
+
+        assertContains(payload, "\"blocks\"")
+        assertContains(payload, "\"type\":\"actions\"")
+        assertContains(payload, "\"type\":\"button\"")
+        // A URL button carries its link in a "url" field (not a legacy action callback).
+        assertContains(payload, "\"url\":\"https://teamcity.example.com/viewLog.html?buildId=456\"")
+    }
+
+    @Test
     fun `Slack payload should handle null values gracefully`() {
         val ctx = createContext(
             projectName = null,
