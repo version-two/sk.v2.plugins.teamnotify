@@ -14,6 +14,9 @@ class WebhookUrlValidationTest {
         if (normalizedUrl.isEmpty() || normalizedUrl.length > 2048) {
             return false
         }
+        if (normalizedUrl.any { it.isWhitespace() }) {
+            return false
+        }
 
         return when (platform) {
             WebhookPlatform.SLACK -> {
@@ -23,7 +26,7 @@ class WebhookUrlValidationTest {
                 Regex("^https://[a-zA-Z0-9_-]+\\.webhook\\.office\\.com/.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
                 Regex("^https://outlook\\.office\\.com/webhook/.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
                 Regex("^https://[a-zA-Z0-9_-]+\\.logic\\.azure\\.com/.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
-                Regex("^https://[a-zA-Z0-9_-]+\\.environment\\.api\\.powerplatform\\.com.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)
+                Regex("^https://[a-zA-Z0-9_.-]+\\.environment\\.api\\.powerplatform\\.com.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)
             }
             WebhookPlatform.DISCORD -> {
                 Regex("^https://discord(?:app)?\\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)

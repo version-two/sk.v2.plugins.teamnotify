@@ -121,15 +121,16 @@ class PayloadGeneratorTest {
     }
 
     @Test
-    fun `Slack payload should not include changes for completed builds`() {
+    fun `Slack payload should include changes for completed builds`() {
         val changes = listOf(
             ChangeSummary(version = "abc123", user = "John Doe", comment = "Fix bug")
         )
         val ctx = createContext(status = NotificationStatus.SUCCESS, changes = changes)
         val payload = slackGenerator.generatePayload(ctx)
 
-        // Changes should not be in footer for completed builds
-        assertFalse(payload.contains("Recent Changes"))
+        // Changes are shown for all statuses (knowing what changed in a failed/successful build is useful)
+        assertContains(payload, "Recent Changes")
+        assertContains(payload, "John Doe")
     }
 
     @Test
@@ -220,6 +221,21 @@ class PayloadGeneratorTest {
     }
 
     @Test
+    fun `Teams payload should color-code the title by status`() {
+        val success = teamsGenerator.generatePayload(createContext(status = NotificationStatus.SUCCESS))
+        assertContains(success, "\"color\": \"Good\"")
+
+        val failure = teamsGenerator.generatePayload(createContext(status = NotificationStatus.FAILURE))
+        assertContains(failure, "\"color\": \"Attention\"")
+
+        val started = teamsGenerator.generatePayload(createContext(status = NotificationStatus.STARTED))
+        assertContains(started, "\"color\": \"Accent\"")
+
+        val stalled = teamsGenerator.generatePayload(createContext(status = NotificationStatus.STALLED))
+        assertContains(stalled, "\"color\": \"Warning\"")
+    }
+
+    @Test
     fun `Teams payload should escape special characters`() {
         val ctx = createContext(
             message = "Build \"failed\" with error:\nLine 1\tTabbed\\Path"
@@ -305,7 +321,7 @@ class PayloadGeneratorTest {
         val ctx = createContext(status = NotificationStatus.SUCCESS)
         val payload = discordGenerator.generatePayload(ctx)
 
-        assertContains(payload, "3066502") // Green in decimal
+        assertContains(payload, "3066993") // green #2ECC71 in decimal
     }
 
     @Test
@@ -313,7 +329,7 @@ class PayloadGeneratorTest {
         val ctx = createContext(status = NotificationStatus.FAILURE)
         val payload = discordGenerator.generatePayload(ctx)
 
-        assertContains(payload, "14431557") // Red in decimal
+        assertContains(payload, "15158332") // red #E74C3C in decimal
     }
 
     @Test
@@ -452,6 +468,11 @@ class PayloadGeneratorTest {
         assertContains(slackPayload, "User3")
         // Should not contain the rest
         assertFalse(slackPayload.contains("User10"))
+
+        // Teams card applies the same limit
+        assertContains(teamsPayload, "User1")
+        assertContains(teamsPayload, "User3")
+        assertFalse(teamsPayload.contains("User10"))
     }
 
     @Test
@@ -476,5 +497,10 @@ class PayloadGeneratorTest {
 
         // Should have "More artifacts" button
         assertContains(slackPayload, "More artifacts")
+
+        // Teams card applies the same limit and "More artifacts..." overflow
+        assertContains(teamsPayload, "artifact1.jar")
+        assertContains(teamsPayload, "artifact3.jar")
+        assertContains(teamsPayload, "More artifacts")
     }
 }

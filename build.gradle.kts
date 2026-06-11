@@ -40,7 +40,15 @@ repositories {
 
 dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
+    // The test suite mixes JUnit 4 (payloads/, validation/ use org.junit.Test) and
+    // JUnit 5 (services/ use org.junit.jupiter). Both APIs are needed at compile time and
+    // both engines at runtime so useJUnitPlatform() discovers and runs everything.
+    // Without the vintage engine, the JUnit 4 tests silently don't run ("No tests found").
     testImplementation(kotlin("test"))
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.2")
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.10.2")
     testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     implementation(kotlin("stdlib-jdk8"))

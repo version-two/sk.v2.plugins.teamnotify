@@ -20,15 +20,18 @@ class TeamsPayloadGenerator : PayloadGenerator {
             NotificationStatus.LONGER_THAN_AVERAGE -> "📈 $titlePrefix - Longer Than Average"
         }
 
-        val themeColor = when (ctx.status) {
-            NotificationStatus.STARTED -> "0088cc"      // blue
-            NotificationStatus.SUCCESS -> "2eb886"      // green
-            NotificationStatus.FAILURE -> "dc3545"      // red
-            NotificationStatus.STALLED -> "f48924"      // orange
-            NotificationStatus.CANCELLED -> "dc3545"    // red - same as failure
-            NotificationStatus.FIXED -> "9b59b6"        // purple
-            NotificationStatus.FIRST_FAILURE -> "dc3545"
-            NotificationStatus.LONGER_THAN, NotificationStatus.LONGER_THAN_AVERAGE -> "e67e22" // yellow/orange
+        // Adaptive Cards do not support an arbitrary hex theme color; they expose a fixed set of
+        // semantic colors on TextBlock. Map each status to the closest one so the Teams card is
+        // color-coded the way the Slack/Discord messages are.
+        val titleColor = when (ctx.status) {
+            NotificationStatus.STARTED -> "Accent"
+            NotificationStatus.SUCCESS -> "Good"
+            NotificationStatus.FAILURE -> "Attention"
+            NotificationStatus.STALLED -> "Warning"
+            NotificationStatus.CANCELLED -> "Attention"
+            NotificationStatus.FIXED -> "Good"
+            NotificationStatus.FIRST_FAILURE -> "Attention"
+            NotificationStatus.LONGER_THAN, NotificationStatus.LONGER_THAN_AVERAGE -> "Warning"
         }
         val triggeredBy = (ctx.triggeredBy ?: "").trim()
         val buildUrl = (ctx.buildUrl ?: "").trim()
@@ -132,6 +135,7 @@ class TeamsPayloadGenerator : PayloadGenerator {
                             "text": "${escape(title)}",
                             "weight": "Bolder",
                             "size": "Large",
+                            "color": "$titleColor",
                             "wrap": true
                         },
                         {

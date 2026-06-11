@@ -9,9 +9,6 @@ import sk.v2.plugins.teamnotify.model.WebhookConfiguration
 import sk.v2.plugins.teamnotify.model.WebhookPlatform
 import sk.v2.plugins.teamnotify.model.WebhookWithSource
 import sk.v2.plugins.teamnotify.model.WebhookSource
-import sk.v2.plugins.teamnotify.settings.DisabledWebhooksSettings
-import sk.v2.plugins.teamnotify.settings.TeamNotifySettingsFactory
-import sk.v2.plugins.teamnotify.settings.DisabledWebhooksSettingsFactory
 import com.intellij.openapi.diagnostic.Logger
 
 data class WebhookWithProjectInfo(
@@ -29,32 +26,16 @@ class WebhookManager(
 
     private val LOG = Logger.getInstance(WebhookManager::class.java.name)
     private val SETTINGS_KEY = "team-notify.settings"
-    private val registeredKeys = mutableSetOf<String>()
-    private val teamNotifySettingsFactory = TeamNotifySettingsFactory()
-    private val disabledWebhooksSettingsFactory = DisabledWebhooksSettingsFactory()
 
-    // Ensure a settings key is registered before accessing it
-    private fun ensureSettingsRegistered(settingsKey: String, isDisabledSettings: Boolean = false) {
-        synchronized(registeredKeys) {
-            if (!registeredKeys.contains(settingsKey)) {
-                try {
-                    val factory = if (isDisabledSettings) disabledWebhooksSettingsFactory else teamNotifySettingsFactory
-                    projectSettingsManager.registerSettingsFactory(settingsKey, factory)
-                    registeredKeys.add(settingsKey)
-                    LOG.debug("Registered settings key: $settingsKey")
-                } catch (e: Exception) {
-                    // Factory might already be registered by another instance or in build-server-plugin.xml
-                    LOG.debug("Settings key already registered or failed to register: $settingsKey - ${e.message}")
-                    registeredKeys.add(settingsKey) // Mark as attempted
-                }
-            }
-        }
-    }
+    // All TeamNotify data for a project lives in this single settings object, whose factory is
+    // registered once at startup by TeamNotifySettingsRegistrar. No per-build-type keys are
+    // registered dynamically (that was the source of "corresponding factory was not registered").
+    private fun projectSettings(project: SProject): TeamNotifyProjectSettings =
+        projectSettingsManager.getSettings(project.projectId, SETTINGS_KEY) as TeamNotifyProjectSettings
 
     fun getWebhooks(project: SProject): List<WebhookConfiguration> {
         return try {
-            val settings = projectSettingsManager.getSettings(project.projectId, SETTINGS_KEY) as TeamNotifyProjectSettings
-            settings.webhooks
+            projectSettings(project).webhooks
         } catch (e: Exception) {
             // If settings can't be loaded (e.g., during plugin update), return empty list
             emptyList()
@@ -70,10 +51,7 @@ class WebhookManager(
         
         // Then get webhooks specific to this build configuration from UI
         val buildTypeWebhooks = try {
-            val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
-            ensureSettingsRegistered(buildTypeKey)
-            val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
-            settings.webhooks
+            projectSettings(buildType.project).buildTypeWebhooks[buildType.buildTypeId].orEmpty()
         } catch (e: Exception) {
             emptyList()
         }
@@ -99,8 +77,7 @@ class WebhookManager(
             
             // Get UI-defined webhooks
             try {
-                val settings = projectSettingsManager.getSettings(currentProject.projectId, SETTINGS_KEY) as TeamNotifyProjectSettings
-                allWebhooks.addAll(settings.webhooks)
+                allWebhooks.addAll(projectSettings(currentProject).webhooks)
             } catch (e: Exception) {
                 // Skip projects that don't have webhook settings
             }
@@ -167,18 +144,19 @@ class WebhookManager(
     }
 
     fun saveWebhooks(project: SProject, webhooks: List<WebhookConfiguration>) {
-        val settings = projectSettingsManager.getSettings(project.projectId, SETTINGS_KEY) as TeamNotifyProjectSettings
+        val settings = projectSettings(project)
         settings.webhooks.clear()
         settings.webhooks.addAll(webhooks)
         project.persist()
     }
-    
+
     fun saveWebhooksForBuildType(buildType: SBuildType, webhooks: List<WebhookConfiguration>) {
-        val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
-        ensureSettingsRegistered(buildTypeKey)
-        val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
-        settings.webhooks.clear()
-        settings.webhooks.addAll(webhooks)
+        val settings = projectSettings(buildType.project)
+        if (webhooks.isEmpty()) {
+            settings.buildTypeWebhooks.remove(buildType.buildTypeId)
+        } else {
+            settings.buildTypeWebhooks[buildType.buildTypeId] = webhooks.toMutableList()
+        }
         buildType.project.persist()
     }
     
@@ -192,10 +170,7 @@ class WebhookManager(
                 if (buildType != null) {
                     // Only return build-type specific webhooks, not inherited ones
                     try {
-                        val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
-                        ensureSettingsRegistered(buildTypeKey)
-                        val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
-                        settings.webhooks
+                        projectSettings(buildType.project).buildTypeWebhooks[buildType.buildTypeId].orEmpty()
                     } catch (e: Exception) {
                         emptyList()
                     }
@@ -273,11 +248,8 @@ class WebhookManager(
     
     // Get locally disabled webhook URLs for a build type
     fun getDisabledWebhooksForBuildType(buildType: SBuildType): Set<String> {
-        val disabledKey = "${SETTINGS_KEY}.disabled.${buildType.buildTypeId}"
         return try {
-            ensureSettingsRegistered(disabledKey, isDisabledSettings = true)
-            val settings = projectSettingsManager.getSettings(buildType.project.projectId, disabledKey) as DisabledWebhooksSettings
-            settings.disabledWebhookUrls
+            projectSettings(buildType.project).disabledByBuildType[buildType.buildTypeId].orEmpty()
         } catch (e: Exception) {
             emptySet()
         }
@@ -285,11 +257,12 @@ class WebhookManager(
 
     // Save locally disabled webhook URLs for a build type
     fun saveDisabledWebhooksForBuildType(buildType: SBuildType, disabledUrls: Set<String>) {
-        val disabledKey = "${SETTINGS_KEY}.disabled.${buildType.buildTypeId}"
-        ensureSettingsRegistered(disabledKey, isDisabledSettings = true)
-        val settings = projectSettingsManager.getSettings(buildType.project.projectId, disabledKey) as DisabledWebhooksSettings
-        settings.disabledWebhookUrls.clear()
-        settings.disabledWebhookUrls.addAll(disabledUrls)
+        val settings = projectSettings(buildType.project)
+        if (disabledUrls.isEmpty()) {
+            settings.disabledByBuildType.remove(buildType.buildTypeId)
+        } else {
+            settings.disabledByBuildType[buildType.buildTypeId] = disabledUrls.toMutableSet()
+        }
         buildType.project.persist()
     }
     
@@ -310,10 +283,7 @@ class WebhookManager(
         
         // Then add build-type specific webhooks (higher priority - overwrites project webhooks with same URL)
         val buildTypeWebhooks = try {
-            val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
-            ensureSettingsRegistered(buildTypeKey)
-            val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
-            settings.webhooks
+            projectSettings(buildType.project).buildTypeWebhooks[buildType.buildTypeId].orEmpty()
         } catch (e: Exception) {
             emptyList()
         }

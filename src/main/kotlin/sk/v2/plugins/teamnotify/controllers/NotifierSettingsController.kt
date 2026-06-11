@@ -246,6 +246,10 @@ class NotifierSettingsController(
         if (normalizedUrl.isEmpty() || normalizedUrl.length > 2048) {
             return false
         }
+        // A valid URL never contains raw whitespace (spaces must be percent-encoded)
+        if (normalizedUrl.any { it.isWhitespace() }) {
+            return false
+        }
 
         return when (platform) {
             WebhookPlatform.SLACK -> {
@@ -255,7 +259,8 @@ class NotifierSettingsController(
                 Regex("^https://[a-zA-Z0-9_-]+\\.webhook\\.office\\.com/.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
                 Regex("^https://outlook\\.office\\.com/webhook/.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
                 Regex("^https://[a-zA-Z0-9_-]+\\.logic\\.azure\\.com/.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
-                Regex("^https://[a-zA-Z0-9_-]+\\.environment\\.api\\.powerplatform\\.com.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)
+                // New Power Automate host is {org}.{region}.environment.api.powerplatform.com (multiple labels before .environment)
+                Regex("^https://[a-zA-Z0-9_.-]+\\.environment\\.api\\.powerplatform\\.com.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)
             }
             WebhookPlatform.DISCORD -> {
                 Regex("^https://discord(?:app)?\\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)

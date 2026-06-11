@@ -1,5 +1,27 @@
 # Changelog
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+
+#### Build-level webhooks no longer fail to save
+- **Fixed "Unable to create settings for team-notify.settings.bt…; corresponding factory was not registered"** when adding a webhook to a build configuration (project-level webhooks were unaffected).
+- Root cause: build-level webhooks registered a new settings factory per build type at request time, which was unreliable. All TeamNotify data for a project now lives in a single settings object whose factory is registered once at startup – no dynamic per-build-type registration.
+
+#### Microsoft Teams / Power Automate
+- **Teams notifications are now color-coded by status** (the status color was previously computed but never applied to the Adaptive Card).
+- **"Test" now sends the real Adaptive Card envelope for Teams** instead of the legacy `{"text": …}` MessageCard, so a successful test matches real delivery – including Power Automate Workflow webhooks.
+- **Fixed validation of new Power Automate URLs** (`{org}.{region}.environment.api.powerplatform.com`) which were previously rejected.
+- URLs containing raw whitespace are now rejected.
+
+### 📋 Technical Details
+- `TeamNotifyProjectSettings.kt`: now holds project webhooks plus per-build-type webhooks and per-build-type locally-disabled URLs in one object; removed `DisabledWebhooksSettings`.
+- `WebhookManager.kt`: removed `ensureSettingsRegistered()`/dynamic key registration; all access goes through the single `team-notify.settings` key.
+- `TeamsPayloadGenerator.kt`: maps status to an Adaptive Card `color`.
+- `WebhookService.kt`: Teams test payload uses the Adaptive Card envelope.
+- `NotifierSettingsController.kt`: Power Automate host regex allows multi-label subdomains; whitespace rejected.
+- `build.gradle.kts`: test suite now runs under the JUnit Platform with both the Jupiter and Vintage engines (previously no tests executed).
+
 ## [1.3.0] - 2026-01-22
 
 ### 🎯 New Features
