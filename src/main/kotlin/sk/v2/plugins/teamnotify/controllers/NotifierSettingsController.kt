@@ -310,7 +310,12 @@ class NotifierSettingsController(
 
         return when (platform) {
             WebhookPlatform.SLACK -> {
-                Regex("^https://hooks\\.slack\\.com/(services|workflows)/[A-Z0-9]+/[A-Z0-9]+/[A-Za-z0-9_-]+.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)
+                // Two real Slack webhook URL shapes:
+                //  - Incoming webhooks: hooks.slack.com/services/T.../B.../token (3 path segments)
+                //  - Workflow Builder triggers: hooks.slack.com/triggers/<random> (1 segment)
+                // ("/workflows/" was never a real Slack path and is dropped.)
+                Regex("^https://hooks\\.slack\\.com/services/[A-Z0-9]+/[A-Z0-9]+/[A-Za-z0-9_-]+.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
+                Regex("^https://hooks\\.slack\\.com/triggers/[A-Za-z0-9._/-]+.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)
             }
             WebhookPlatform.TEAMS -> {
                 Regex("^https://[a-zA-Z0-9_-]+\\.webhook\\.office\\.com/.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||

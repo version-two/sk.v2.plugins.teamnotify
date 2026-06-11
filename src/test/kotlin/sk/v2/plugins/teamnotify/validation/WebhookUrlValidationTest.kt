@@ -20,7 +20,8 @@ class WebhookUrlValidationTest {
 
         return when (platform) {
             WebhookPlatform.SLACK -> {
-                Regex("^https://hooks\\.slack\\.com/(services|workflows)/[A-Z0-9]+/[A-Z0-9]+/[A-Za-z0-9_-]+.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)
+                Regex("^https://hooks\\.slack\\.com/services/[A-Z0-9]+/[A-Z0-9]+/[A-Za-z0-9_-]+.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
+                Regex("^https://hooks\\.slack\\.com/triggers/[A-Za-z0-9._/-]+.*", RegexOption.IGNORE_CASE).matches(normalizedUrl)
             }
             WebhookPlatform.TEAMS -> {
                 Regex("^https://[a-zA-Z0-9_-]+\\.webhook\\.office\\.com/.*", RegexOption.IGNORE_CASE).matches(normalizedUrl) ||
@@ -43,9 +44,16 @@ class WebhookUrlValidationTest {
     }
 
     @Test
-    fun `valid Slack workflows URL should pass`() {
-        val url = "https://hooks.slack.com/workflows/T00000000/A00000000/123456789012345678/abcdefghijklmnopqrst"
+    fun `valid Slack Workflow Builder trigger URL should pass`() {
+        val url = "https://hooks.slack.com/triggers/T00000000/123456789012/abcdefghijklmnopqrstuvwx"
         assertTrue(isValidWebhookUrl(WebhookPlatform.SLACK, url))
+    }
+
+    @Test
+    fun `bogus Slack workflows path should fail`() {
+        // "/workflows/" was never a real Slack webhook path; only /services/ and /triggers/ are valid.
+        val url = "https://hooks.slack.com/workflows/T00000000/A00000000/123456789012345678/abcdefghij"
+        assertFalse(isValidWebhookUrl(WebhookPlatform.SLACK, url))
     }
 
     @Test
