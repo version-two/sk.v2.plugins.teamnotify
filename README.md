@@ -119,8 +119,13 @@ See [DSL_USAGE.md](DSL_USAGE.md) for comprehensive documentation and examples.
 For safety, URLs are validated per platform. Expected formats include:
 
 *   Slack: `https://hooks.slack.com/services/...`
-*   Microsoft Teams: `https://{tenant}.webhook.office.com/webhookb2/...` or `https://outlook.office.com/...`
+*   Microsoft Teams:
+    *   Standard: `https://{tenant}.webhook.office.com/webhookb2/...`
+    *   Classic: `https://outlook.office.com/webhook/...`
+    *   Power Automate: `https://{id}.environment.api.powerplatform.com/...` or `https://{id}.logic.azure.com/...`
 *   Discord: `https://discord.com/api/webhooks/{id}/{token}`
+
+> **Note:** Microsoft is retiring Office 365 Connectors (deadline: March 31, 2026). New webhooks should use Power Automate Workflows. The plugin supports optional authentication headers for authenticated Power Automate workflows. See [DSL_USAGE.md](DSL_USAGE.md) for migration details.
 
 ## Development
 

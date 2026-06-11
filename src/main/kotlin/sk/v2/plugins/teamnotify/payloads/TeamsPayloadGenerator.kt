@@ -41,8 +41,8 @@ class TeamsPayloadGenerator : PayloadGenerator {
         if (buildNo.isNotEmpty()) facts += factJson("Build #", buildNo)
         if (triggeredBy.isNotEmpty()) facts += factJson("Triggered by", triggeredBy)
 
-        // Build changes section - only for build started
-        val changesSection = if (ctx.status == NotificationStatus.STARTED && ctx.changes.isNotEmpty()) {
+        // Build changes section - show for all notifications
+        val changesSection = if (ctx.changes.isNotEmpty()) {
             val items = ctx.changes.take(3).map { ch ->
                 val who = (ch.user ?: "").ifBlank { "unknown" }
                 val msg = (ch.comment ?: "").replace("\n", " ").trim()
@@ -69,24 +69,26 @@ class TeamsPayloadGenerator : PayloadGenerator {
 
         // Build actions array
         val actions = mutableListOf<String>()
-        if (buildUrl.isNotEmpty()) {
+
+        // Build link - controlled by ctx.showBuildLink
+        if (ctx.showBuildLink && buildUrl.isNotEmpty()) {
             actions += """{
                 "type": "Action.OpenUrl",
                 "title": "View Build",
                 "url": "${escape(buildUrl)}"
             }"""
         }
-        
+
         // Only show artifacts for completed builds
-        val showArtifacts = ctx.status in listOf(
+        val isCompletedBuild = ctx.status in listOf(
             NotificationStatus.SUCCESS,
             NotificationStatus.FIXED,
             NotificationStatus.FAILURE,
             NotificationStatus.FIRST_FAILURE
         )
-        
-        // Show individual artifact buttons if available
-        if (showArtifacts) {
+
+        // Show individual artifact buttons if available - controlled by ctx.showArtifacts
+        if (ctx.showArtifacts && isCompletedBuild) {
             if (ctx.artifacts.isNotEmpty()) {
                 // Add individual artifact download buttons (limit to 3 for space)
                 ctx.artifacts.take(3).forEach { artifact ->

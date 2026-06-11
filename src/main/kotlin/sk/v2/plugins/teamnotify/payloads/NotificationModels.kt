@@ -32,7 +32,9 @@ data class NotificationContext(
     val startTime: Date?,
     val finishTime: Date?,
     val changes: List<ChangeSummary> = emptyList(),
-    val artifacts: List<ArtifactSummary> = emptyList()
+    val artifacts: List<ArtifactSummary> = emptyList(),
+    val showBuildLink: Boolean = true,
+    val showArtifacts: Boolean = true
 )
 
 data class ChangeSummary(

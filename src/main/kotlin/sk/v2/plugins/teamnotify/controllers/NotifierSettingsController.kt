@@ -41,6 +41,8 @@ class NotifierSettingsController(
         if (path.endsWith("/notifier/testWebhook.html")) {
             val webhookUrl = request.getParameter("webhookUrl")?.trim()
             val platformRaw = request.getParameter("platform")?.trim()?.uppercase()
+            val authHeaderName = request.getParameter("authHeaderName")?.trim()?.takeIf { it.isNotEmpty() }
+            val authHeaderValue = request.getParameter("authHeaderValue")?.trim()?.takeIf { it.isNotEmpty() }
             val platform = try {
                 WebhookPlatform.valueOf(platformRaw ?: "")
             } catch (e: Exception) { null }
@@ -52,7 +54,7 @@ class NotifierSettingsController(
                 return null
             }
 
-            val result = webhookService.testWebhook(webhookUrl, platform)
+            val result = webhookService.testWebhook(webhookUrl, platform, authHeaderName, authHeaderValue)
             val msg = (result.errorBody ?: "").replace("\"", "\\\"")
             response.status = if (result.success) 200 else if (result.statusCode > 0) result.statusCode else 500
             response.writer.write("""{"success":${result.success},"status":${result.statusCode},"message":"$msg"}""")
@@ -84,7 +86,11 @@ class NotifierSettingsController(
                 val onBuildFixed = request.getParameter("onBuildFixed") != null
                 val onStart = request.getParameter("onStart") != null
                 val includeChanges = request.getParameter("includeChanges") != null
+                val showBuildLink = request.getParameter("showBuildLink") != null
+                val showArtifacts = request.getParameter("showArtifacts") != null
                 val branchFilter = request.getParameter("branchFilter")?.trim()?.takeIf { it.isNotEmpty() }
+                val authHeaderName = request.getParameter("authHeaderName")?.trim()?.takeIf { it.isNotEmpty() }
+                val authHeaderValue = request.getParameter("authHeaderValue")?.trim()?.takeIf { it.isNotEmpty() }
 
                 val errors = mutableListOf<String>()
                 val platform = try {
@@ -138,7 +144,11 @@ class NotifierSettingsController(
                             onFirstFailure = onFirstFailure,
                             onBuildFixed = onBuildFixed,
                             includeChanges = includeChanges,
-                            branchFilter = branchFilter
+                            showBuildLink = showBuildLink,
+                            showArtifacts = showArtifacts,
+                            branchFilter = branchFilter,
+                            authHeaderName = authHeaderName,
+                            authHeaderValue = authHeaderValue
                         )
                         val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
                         existingWebhooks.add(newWebhook)
@@ -300,7 +310,10 @@ class NotifierSettingsController(
                         "onFirstFailure": ${webhook.onFirstFailure},
                         "onBuildFixed": ${webhook.onBuildFixed},
                         "includeChanges": ${webhook.includeChanges},
+                        "showBuildLink": ${webhook.showBuildLink},
+                        "showArtifacts": ${webhook.showArtifacts},
                         "branchFilter": ${if (webhook.branchFilter != null) "\"${webhook.branchFilter.replace("\"", "\\\"")}\"" else "null"},
+                        "hasAuth": ${!webhook.authHeaderName.isNullOrBlank() && !webhook.authHeaderValue.isNullOrBlank()},
                         "enabled": ${webhook.enabled}
                     }"""
                 }.joinToString(",")
@@ -504,8 +517,12 @@ class NotifierSettingsController(
                 val onBuildFixed = request.getParameter("onBuildFixed")?.toBoolean() ?: false
                 val onStart = request.getParameter("onStart")?.toBoolean() ?: false
                 val includeChanges = request.getParameter("includeChanges")?.toBoolean() ?: true
+                val showBuildLink = request.getParameter("showBuildLink")?.toBoolean() ?: true
+                val showArtifacts = request.getParameter("showArtifacts")?.toBoolean() ?: true
                 val branchFilter = request.getParameter("branchFilter")?.trim()?.takeIf { it.isNotEmpty() }
-                
+                val authHeaderName = request.getParameter("authHeaderName")?.trim()?.takeIf { it.isNotEmpty() }
+                val authHeaderValue = request.getParameter("authHeaderValue")?.trim()?.takeIf { it.isNotEmpty() }
+
                 val platform = try {
                     WebhookPlatform.valueOf(platformRaw ?: "")
                 } catch (e: Exception) {
@@ -531,7 +548,11 @@ class NotifierSettingsController(
                     onFirstFailure = onFirstFailure,
                     onBuildFixed = onBuildFixed,
                     includeChanges = includeChanges,
-                    branchFilter = branchFilter
+                    showBuildLink = showBuildLink,
+                    showArtifacts = showArtifacts,
+                    branchFilter = branchFilter,
+                    authHeaderName = authHeaderName,
+                    authHeaderValue = authHeaderValue
                 )
 
                 try {

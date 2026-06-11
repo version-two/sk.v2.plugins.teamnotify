@@ -213,6 +213,8 @@ All webhook parameters are configured using `param()` inside a `buildFeature` bl
 | `webhook.buildLongerThan` | String | No | `null` | Trigger if build takes longer than N seconds | `"300"` (for 5 minutes) |
 | `webhook.includeChanges` | String | No | `"true"` | Include commit details in notification | `"true"` or `"false"` |
 | `webhook.branchFilter` | String | No | `null` | Filter by branch patterns (comma-separated) | `"+:main,+:release/*,-:feature/*"` |
+| `webhook.authHeaderName` | String | No | `null` | Authentication header name (for Power Automate) | `"Authorization"` |
+| `webhook.authHeaderValue` | String | No | `null` | Authentication header value (for Power Automate) | `"%teams.auth.token%"` |
 
 **Important Notes:**
 - All parameter values must be strings (in quotes), even for boolean and numeric values
@@ -396,6 +398,40 @@ buildFeature {
 - Power Automate (Legacy - deprecated Nov 2025): `https://{id}.logic.azure.com/workflows/...`
 
 **Note:** Microsoft is transitioning to Power Automate-based workflows. The new format using `environment.api.powerplatform.com` is the recommended approach for new webhooks.
+
+### Microsoft Teams Power Automate Migration
+
+Microsoft is retiring Office 365 Connectors within Microsoft Teams. The retirement deadline has been extended to **March 31, 2026**. After this date, legacy connector webhooks will stop working.
+
+**Migration Steps:**
+1. Create a new Power Automate Workflow in Microsoft Teams
+2. Add the "When a Teams webhook request is received" trigger
+3. Configure authentication (see below)
+4. Add a "Post message in a chat or channel" action
+5. Update your TeamNotify webhook URL to the new Power Automate URL
+
+**Authentication for Power Automate Workflows:**
+
+When creating a Power Automate Workflow, you can choose the authentication method:
+- **"Anyone"**: No authentication required (simplest option)
+- **"Any user in my tenant"**: Requires a Bearer token
+
+For authenticated workflows, configure the auth header in your DSL:
+
+```kotlin
+buildFeature {
+    type = "teamnotify.webhook"
+    param("webhook.url", "%teams.powerautomate.url%")
+    param("webhook.platform", "TEAMS")
+    param("webhook.enabled", "true")
+    param("webhook.onFailure", "true")
+    // Authentication for Power Automate (optional - only for authenticated workflows)
+    param("webhook.authHeaderName", "Authorization")
+    param("webhook.authHeaderValue", "%teams.powerautomate.token%")  // Store token as password parameter
+}
+```
+
+**Important:** Store the authentication token as a password-type parameter in TeamCity to keep it secure.
 
 ### Discord
 ```kotlin

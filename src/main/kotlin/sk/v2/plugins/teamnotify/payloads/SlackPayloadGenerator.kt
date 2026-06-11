@@ -42,20 +42,22 @@ class SlackPayloadGenerator : PayloadGenerator {
 
         // Actions as buttons in Slack
         val actions = mutableListOf<String>()
-        if (buildUrl.isNotEmpty()) {
+
+        // Build link - controlled by ctx.showBuildLink
+        if (ctx.showBuildLink && buildUrl.isNotEmpty()) {
             actions += actionJson("View Build", buildUrl, "primary")
         }
-        
+
         // Only show artifacts for completed builds
-        val showArtifacts = ctx.status in listOf(
+        val isCompletedBuild = ctx.status in listOf(
             NotificationStatus.SUCCESS,
             NotificationStatus.FIXED,
             NotificationStatus.FAILURE,
             NotificationStatus.FIRST_FAILURE
         )
-        
-        // Show individual artifact buttons if available
-        if (showArtifacts) {
+
+        // Show individual artifact buttons if available - controlled by ctx.showArtifacts
+        if (ctx.showArtifacts && isCompletedBuild) {
             if (ctx.artifacts.isNotEmpty()) {
                 // Add individual artifact download buttons (limit to 3 for space)
                 ctx.artifacts.take(3).forEach { artifact ->
@@ -71,8 +73,8 @@ class SlackPayloadGenerator : PayloadGenerator {
             }
         }
 
-        // Build changes text - only for build started
-        val changesText = if (ctx.status == NotificationStatus.STARTED && ctx.changes.isNotEmpty()) {
+        // Build changes text - show for all notifications
+        val changesText = if (ctx.changes.isNotEmpty()) {
             val items = ctx.changes.take(3).map { ch ->
                 val who = (ch.user ?: "").ifBlank { "unknown" }
                 val msg = (ch.comment ?: "").replace("\n", " ").trim()

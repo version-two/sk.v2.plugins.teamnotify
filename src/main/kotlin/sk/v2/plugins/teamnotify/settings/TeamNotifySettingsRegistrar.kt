@@ -4,8 +4,7 @@ import jetbrains.buildServer.serverSide.settings.ProjectSettingsManager
 
 class TeamNotifySettingsRegistrar(
     private val projectSettingsManager: ProjectSettingsManager,
-    private val teamNotifySettingsFactory: TeamNotifySettingsFactory,
-    private val disabledWebhooksSettingsFactory: DisabledWebhooksSettingsFactory
+    private val teamNotifySettingsFactory: TeamNotifySettingsFactory
 ) {
     companion object {
         // Use the plugin name as defined in teamcity-plugin.xml
@@ -14,15 +13,8 @@ class TeamNotifySettingsRegistrar(
     }
     
     fun register() {
-        // Register the settings factory for our main settings key
+        // Register the settings factory for our main settings key (project-level webhooks)
+        // Build-type specific keys are registered dynamically by WebhookManager
         projectSettingsManager.registerSettingsFactory(SETTINGS_KEY, teamNotifySettingsFactory)
-        
-        // Register factory for build type specific webhooks
-        // Pattern matches "team-notify.settings.{buildTypeId}"
-        projectSettingsManager.registerSettingsFactory("$SETTINGS_KEY.*", teamNotifySettingsFactory)
-        
-        // Register factories for build type specific disabled webhooks
-        // Pattern matches "team-notify.settings.disabled.{buildTypeId}"
-        projectSettingsManager.registerSettingsFactory("$SETTINGS_KEY.disabled.*", disabledWebhooksSettingsFactory)
     }
 }

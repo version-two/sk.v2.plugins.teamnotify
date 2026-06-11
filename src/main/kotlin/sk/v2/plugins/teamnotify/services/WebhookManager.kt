@@ -10,6 +10,9 @@ import sk.v2.plugins.teamnotify.model.WebhookPlatform
 import sk.v2.plugins.teamnotify.model.WebhookWithSource
 import sk.v2.plugins.teamnotify.model.WebhookSource
 import sk.v2.plugins.teamnotify.settings.DisabledWebhooksSettings
+import sk.v2.plugins.teamnotify.settings.TeamNotifySettingsFactory
+import sk.v2.plugins.teamnotify.settings.DisabledWebhooksSettingsFactory
+import com.intellij.openapi.diagnostic.Logger
 
 data class WebhookWithProjectInfo(
     val webhook: WebhookConfiguration,
@@ -24,7 +27,29 @@ class WebhookManager(
     private val sBuildServer: SBuildServer
 ) {
 
+    private val LOG = Logger.getInstance(WebhookManager::class.java.name)
     private val SETTINGS_KEY = "team-notify.settings"
+    private val registeredKeys = mutableSetOf<String>()
+    private val teamNotifySettingsFactory = TeamNotifySettingsFactory()
+    private val disabledWebhooksSettingsFactory = DisabledWebhooksSettingsFactory()
+
+    // Ensure a settings key is registered before accessing it
+    private fun ensureSettingsRegistered(settingsKey: String, isDisabledSettings: Boolean = false) {
+        synchronized(registeredKeys) {
+            if (!registeredKeys.contains(settingsKey)) {
+                try {
+                    val factory = if (isDisabledSettings) disabledWebhooksSettingsFactory else teamNotifySettingsFactory
+                    projectSettingsManager.registerSettingsFactory(settingsKey, factory)
+                    registeredKeys.add(settingsKey)
+                    LOG.debug("Registered settings key: $settingsKey")
+                } catch (e: Exception) {
+                    // Factory might already be registered by another instance or in build-server-plugin.xml
+                    LOG.debug("Settings key already registered or failed to register: $settingsKey - ${e.message}")
+                    registeredKeys.add(settingsKey) // Mark as attempted
+                }
+            }
+        }
+    }
 
     fun getWebhooks(project: SProject): List<WebhookConfiguration> {
         return try {
@@ -46,6 +71,7 @@ class WebhookManager(
         // Then get webhooks specific to this build configuration from UI
         val buildTypeWebhooks = try {
             val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
+            ensureSettingsRegistered(buildTypeKey)
             val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
             settings.webhooks
         } catch (e: Exception) {
@@ -111,13 +137,13 @@ class WebhookManager(
     private fun parseFeatureToWebhook(params: Map<String, String>): WebhookConfiguration? {
         val url = params["webhook.url"] ?: return null
         val platformStr = params["webhook.platform"] ?: return null
-        
+
         val platform = try {
             WebhookPlatform.valueOf(platformStr)
         } catch (e: Exception) {
             return null
         }
-        
+
         return WebhookConfiguration(
             url = url,
             platform = platform,
@@ -132,7 +158,11 @@ class WebhookManager(
             buildLongerThanAverage = params["webhook.buildLongerThanAverage"]?.toBoolean() ?: false,
             buildLongerThan = params["webhook.buildLongerThan"]?.toIntOrNull(),
             includeChanges = params["webhook.includeChanges"]?.toBoolean() ?: true,
-            branchFilter = params["webhook.branchFilter"]
+            showBuildLink = params["webhook.showBuildLink"]?.toBoolean() ?: true,
+            showArtifacts = params["webhook.showArtifacts"]?.toBoolean() ?: true,
+            branchFilter = params["webhook.branchFilter"],
+            authHeaderName = params["webhook.authHeaderName"],
+            authHeaderValue = params["webhook.authHeaderValue"]
         )
     }
 
@@ -145,6 +175,7 @@ class WebhookManager(
     
     fun saveWebhooksForBuildType(buildType: SBuildType, webhooks: List<WebhookConfiguration>) {
         val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
+        ensureSettingsRegistered(buildTypeKey)
         val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
         settings.webhooks.clear()
         settings.webhooks.addAll(webhooks)
@@ -162,6 +193,7 @@ class WebhookManager(
                     // Only return build-type specific webhooks, not inherited ones
                     try {
                         val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
+                        ensureSettingsRegistered(buildTypeKey)
                         val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
                         settings.webhooks
                     } catch (e: Exception) {
@@ -243,16 +275,18 @@ class WebhookManager(
     fun getDisabledWebhooksForBuildType(buildType: SBuildType): Set<String> {
         val disabledKey = "${SETTINGS_KEY}.disabled.${buildType.buildTypeId}"
         return try {
+            ensureSettingsRegistered(disabledKey, isDisabledSettings = true)
             val settings = projectSettingsManager.getSettings(buildType.project.projectId, disabledKey) as DisabledWebhooksSettings
             settings.disabledWebhookUrls
         } catch (e: Exception) {
             emptySet()
         }
     }
-    
+
     // Save locally disabled webhook URLs for a build type
     fun saveDisabledWebhooksForBuildType(buildType: SBuildType, disabledUrls: Set<String>) {
         val disabledKey = "${SETTINGS_KEY}.disabled.${buildType.buildTypeId}"
+        ensureSettingsRegistered(disabledKey, isDisabledSettings = true)
         val settings = projectSettingsManager.getSettings(buildType.project.projectId, disabledKey) as DisabledWebhooksSettings
         settings.disabledWebhookUrls.clear()
         settings.disabledWebhookUrls.addAll(disabledUrls)
@@ -277,6 +311,7 @@ class WebhookManager(
         // Then add build-type specific webhooks (higher priority - overwrites project webhooks with same URL)
         val buildTypeWebhooks = try {
             val buildTypeKey = "${SETTINGS_KEY}.${buildType.buildTypeId}"
+            ensureSettingsRegistered(buildTypeKey)
             val settings = projectSettingsManager.getSettings(buildType.project.projectId, buildTypeKey) as TeamNotifyProjectSettings
             settings.webhooks
         } catch (e: Exception) {

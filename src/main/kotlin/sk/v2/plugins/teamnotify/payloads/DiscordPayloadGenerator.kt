@@ -39,18 +39,23 @@ class DiscordPayloadGenerator : PayloadGenerator {
         if (config.isNotEmpty()) fields += fieldJson("Build Config", config, true)
         if (buildNo.isNotEmpty()) fields += fieldJson("Build #", buildNo, true)
         if (triggeredBy.isNotEmpty()) fields += fieldJson("Triggered by", triggeredBy, true)
-        if (buildUrl.isNotEmpty()) fields += fieldJson("Build", "[Open in TeamCity](${escape(buildUrl)})", false)
-        
+
+        // Build link - controlled by ctx.showBuildLink
+        if (ctx.showBuildLink && buildUrl.isNotEmpty()) {
+            fields += fieldJson("Build", "[Open in TeamCity](${escape(buildUrl)})", false)
+        }
+
+        // Artifacts - controlled by ctx.showArtifacts
         // Only show artifacts for completed builds (success, fixed, or completed failures)
-        val showArtifacts = ctx.status in listOf(
+        val isCompletedBuild = ctx.status in listOf(
             NotificationStatus.SUCCESS,
             NotificationStatus.FIXED,
-            NotificationStatus.FAILURE, // Only show for completed builds that failed
+            NotificationStatus.FAILURE,
             NotificationStatus.FIRST_FAILURE
         )
-        
+
         // Show individual artifact links if available, otherwise show browse link
-        if (showArtifacts) {
+        if (ctx.showArtifacts && isCompletedBuild) {
             if (ctx.artifacts.isNotEmpty()) {
                 // Show individual artifact download links
                 val artifactLinks = ctx.artifacts.take(5).map { artifact ->
@@ -63,8 +68,8 @@ class DiscordPayloadGenerator : PayloadGenerator {
             }
         }
 
-        // Only show changes for build started notifications
-        if (ctx.status == NotificationStatus.STARTED && ctx.changes.isNotEmpty()) {
+        // Show changes for all build notifications (not just STARTED)
+        if (ctx.changes.isNotEmpty()) {
             val items = ctx.changes.take(3).map { ch ->
                 val who = (ch.user ?: "").ifBlank { "unknown" }
                 val msg = (ch.comment ?: "").replace("\n", " ").trim()

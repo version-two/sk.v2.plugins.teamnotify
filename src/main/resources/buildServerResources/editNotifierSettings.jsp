@@ -266,7 +266,25 @@
             - Prefix with <code>-</code> to exclude, <code>+</code> or no prefix to include
           </span>
         </div>
-        
+
+        <!-- Authentication Header (for Power Automate Workflows) -->
+        <div class="tn-form-group" id="authSection" style="display: none;">
+          <label class="tn-label">Authentication (Optional)</label>
+          <span class="tn-help-text" style="margin-bottom: 8px; display: block;">
+            Required when using Power Automate Workflows with authentication enabled.
+            Leave empty for "Anyone can trigger" workflows.
+          </span>
+          <input type="text"
+                 id="authHeaderName"
+                 class="tn-input"
+                 placeholder="Header Name (e.g., Authorization)"
+                 style="margin-bottom: 8px;">
+          <input type="password"
+                 id="authHeaderValue"
+                 class="tn-input"
+                 placeholder="Header Value (e.g., Bearer your-token)">
+        </div>
+
         <!-- Additional Options -->
         <div class="tn-form-group">
           <label class="tn-label">Additional Options</label>
@@ -276,6 +294,20 @@
               <span>Include recent changes in notifications</span>
             </label>
             <span class="tn-help-text">When enabled, notifications will include commit messages and author information</span>
+          </div>
+          <div class="tn-checkbox-group">
+            <label class="tn-checkbox-label">
+              <input type="checkbox" id="showBuildLink" class="tn-checkbox" checked>
+              <span>Show "Open in TeamCity" link</span>
+            </label>
+            <span class="tn-help-text">Include a link to view the build in TeamCity</span>
+          </div>
+          <div class="tn-checkbox-group">
+            <label class="tn-checkbox-label">
+              <input type="checkbox" id="showArtifacts" class="tn-checkbox" checked>
+              <span>Show artifacts section</span>
+            </label>
+            <span class="tn-help-text">Include artifact download links in notifications (for completed builds)</span>
           </div>
         </div>
       </div>
@@ -387,12 +419,26 @@
                       <c:if test="${!webhook.includeChanges}">
                         <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Changes</span>
                       </c:if>
+                      <c:if test="${!webhook.showBuildLink}">
+                        <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Link</span>
+                      </c:if>
+                      <c:if test="${!webhook.showArtifacts}">
+                        <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Artifacts</span>
+                      </c:if>
                       <c:if test="${not empty webhook.branchFilter}">
                         <span class="tn-trigger-tag" style="background: #ddd6fe; color: #6b21a8;" title="${fn:escapeXml(webhook.branchFilter)}">
                           <svg style="width: 12px; height: 12px; display: inline-block; margin-right: 2px;" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M7 3a1 1 0 100 2h3.5L9 6.5A1 1 0 1010.5 8L12 6.5V10a1 1 0 102 0V6.5L15.5 8a1 1 0 101.5-1.5L15.5 5H19a1 1 0 100-2h-3.5L14 1.5A1 1 0 0012.5 0L11 1.5V0a1 1 0 00-2 0v1.5L7.5 0A1 1 0 006 1.5L7.5 3H7z"/>
                           </svg>
                           Filtered
+                        </span>
+                      </c:if>
+                      <c:if test="${not empty webhook.authHeaderName}">
+                        <span class="tn-trigger-tag" style="background: #fef3c7; color: #92400e;" title="Authentication configured">
+                          <svg style="width: 12px; height: 12px; display: inline-block; margin-right: 2px;" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                          </svg>
+                          Auth
                         </span>
                       </c:if>
                     </div>
@@ -527,6 +573,12 @@
                   <c:if test="${!webhook.includeChanges}">
                     <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Changes</span>
                   </c:if>
+                  <c:if test="${!webhook.showBuildLink}">
+                    <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Link</span>
+                  </c:if>
+                  <c:if test="${!webhook.showArtifacts}">
+                    <span class="tn-trigger-tag" style="background: #e5e7eb; color: #6b7280;">No Artifacts</span>
+                  </c:if>
                   <c:if test="${not empty webhook.branchFilter}">
                     <span class="tn-trigger-tag" style="background: #ddd6fe; color: #6b21a8;" title="${fn:escapeXml(webhook.branchFilter)}">
                       <svg style="width: 12px; height: 12px; display: inline-block; margin-right: 2px;" viewBox="0 0 20 20" fill="currentColor">
@@ -535,9 +587,17 @@
                       Filtered
                     </span>
                   </c:if>
+                  <c:if test="${not empty webhook.authHeaderName}">
+                    <span class="tn-trigger-tag" style="background: #fef3c7; color: #92400e;" title="Authentication configured">
+                      <svg style="width: 12px; height: 12px; display: inline-block; margin-right: 2px;" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                      </svg>
+                      Auth
+                    </span>
+                  </c:if>
                 </div>
               </div>
-              
+
               <div class="tn-webhook-actions">
                 <c:choose>
                   <c:when test="${versionedSettingsReadOnly}">
@@ -679,11 +739,21 @@
   }
 
   // Platform Selection
+  const authSection = document.getElementById('authSection');
+
+  function updateAuthVisibility() {
+    const isTeams = platformSelect.value === 'TEAMS';
+    if (authSection) {
+      authSection.style.display = isTeams ? 'block' : 'none';
+    }
+  }
+
   platformRadios.forEach(radio => {
     radio.addEventListener('change', function() {
       platformSelect.value = this.value;
       updatePlaceholder();
       validateUrl();
+      updateAuthVisibility();
     });
   });
 
@@ -820,6 +890,8 @@
         body: new URLSearchParams({
           platform: platformSelect.value,
           webhookUrl: urlEl.value.trim(),
+          authHeaderName: document.getElementById('authHeaderName')?.value?.trim() || '',
+          authHeaderValue: document.getElementById('authHeaderValue')?.value || '',
           'tc-csrf-token': getCsrfToken()
         })
       });
@@ -881,7 +953,11 @@
       onCancel: document.getElementById('onCancel').checked,
       buildLongerThanAverage: document.getElementById('buildLongerThanAverage').checked,
       includeChanges: document.getElementById('includeChanges').checked,
+      showBuildLink: document.getElementById('showBuildLink').checked,
+      showArtifacts: document.getElementById('showArtifacts').checked,
       branchFilter: document.getElementById('branchFilter').value.trim(),
+      authHeaderName: document.getElementById('authHeaderName')?.value?.trim() || '',
+      authHeaderValue: document.getElementById('authHeaderValue')?.value || '',
       'tc-csrf-token': getCsrfToken()
     });
 

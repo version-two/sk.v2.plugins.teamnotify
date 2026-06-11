@@ -1,5 +1,44 @@
 # Changelog
 
+## [1.3.0] - 2026-01-22
+
+### 🎯 New Features
+
+#### Changelog in All Notifications
+- **Changes now shown in all notification types** - Previously changes were only shown in "Build Started" notifications
+- **Consistent change display** across Success, Failure, Fixed, First Failure, and other notification types
+- **Better build context** - See what changed in the build that succeeded/failed
+
+#### Configurable Notification Sections
+- **Added "Show Build Link" option** - Toggle visibility of "Open in TeamCity" link in notifications
+- **Added "Show Artifacts" option** - Toggle visibility of artifact download links in notifications
+- **Per-webhook configuration** - Each webhook can have different display settings
+- **UI tags** - "No Link" and "No Artifacts" tags displayed on webhooks with these options disabled
+
+### 🐛 Bug Fixes
+
+#### Fixed Build-Type Specific Webhook Registration
+- **Fixed "factory was not registered" error** when adding webhooks via UI for build configurations
+- **Implemented dynamic settings registration** - Settings keys are now registered on-demand
+- **Removed wildcard pattern registration** - TeamCity doesn't support wildcards in `registerSettingsFactory`
+
+### 📋 Technical Details
+- `WebhookConfiguration.kt`: Added `showBuildLink` and `showArtifacts` boolean options
+- `TeamNotifyProjectSettings.kt`: Added persistence for new options
+- `NotificationModels.kt`: Added display options to NotificationContext
+- `DiscordPayloadGenerator.kt`, `SlackPayloadGenerator.kt`, `TeamsPayloadGenerator.kt`: Updated to use new options and show changes for all statuses
+- `WebhookManager.kt`: Implemented `ensureSettingsRegistered()` for dynamic registration
+- `TeamNotifySettingsRegistrar.kt`: Simplified to only register base settings key
+- `NotifierSettingsController.kt`: Added handling for new parameters
+- `editNotifierSettings.jsp`: Added UI checkboxes and display tags
+
+### 🔢 Version Info
+- Version: 1.3.0
+- API Compatibility: TeamCity 2025.07+
+- Release Date: January 22, 2026
+
+---
+
 ## [1.2.2] - 2025-12-16
 
 ### 🐛 Bug Fixes

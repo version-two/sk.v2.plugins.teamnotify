@@ -27,7 +27,17 @@ class WebhookService(
     private val teamsPayloadGenerator = TeamsPayloadGenerator()
     private val discordPayloadGenerator = DiscordPayloadGenerator()
 
-    fun sendNotification(url: String, platform: WebhookPlatform, build: SRunningBuild, message: String, includeChanges: Boolean = true) {
+    fun sendNotification(
+        url: String,
+        platform: WebhookPlatform,
+        build: SRunningBuild,
+        message: String,
+        includeChanges: Boolean = true,
+        authHeaderName: String? = null,
+        authHeaderValue: String? = null,
+        showBuildLink: Boolean = true,
+        showArtifacts: Boolean = true
+    ) {
         // Backward-compatible entrypoint: construct a minimal NotificationContext
         val ctx = NotificationContext(
             status = when {
@@ -54,12 +64,14 @@ class WebhookService(
             startTime = build.startDate,
             finishTime = build.finishDate,
             changes = if (includeChanges) collectRecentChanges(build, 5) else emptyList(),
-            artifacts = collectArtifacts(build)
+            artifacts = collectArtifacts(build),
+            showBuildLink = showBuildLink,
+            showArtifacts = showArtifacts
         )
-        sendNotification(url, platform, ctx)
+        sendNotification(url, platform, ctx, authHeaderName, authHeaderValue)
     }
 
-    fun sendNotification(url: String, platform: WebhookPlatform, ctx: NotificationContext) {
+    fun sendNotification(url: String, platform: WebhookPlatform, ctx: NotificationContext, authHeaderName: String? = null, authHeaderValue: String? = null) {
         val payload = when (platform) {
             WebhookPlatform.SLACK -> slackPayloadGenerator.generatePayload(ctx)
             WebhookPlatform.TEAMS -> teamsPayloadGenerator.generatePayload(ctx)
@@ -67,7 +79,7 @@ class WebhookService(
         }
         val redactedUrl = redact(url)
         LOG.info("Dispatching webhook to $redactedUrl (Platform: $platform)")
-        val result = postJson(url, payload)
+        val result = postJson(url, payload, authHeaderName, authHeaderValue)
         if (result.success) {
             LOG.info("Webhook delivered to $redactedUrl (HTTP ${result.statusCode})")
         } else {
@@ -184,7 +196,7 @@ class WebhookService(
         val errorBody: String? = null
     )
 
-    private fun postJson(urlString: String, jsonBody: String): HttpResult {
+    private fun postJson(urlString: String, jsonBody: String, authHeaderName: String? = null, authHeaderValue: String? = null): HttpResult {
         var connection: HttpURLConnection? = null
         return try {
             val url = URL(urlString)
@@ -195,6 +207,10 @@ class WebhookService(
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 setRequestProperty("Accept", "application/json, */*")
+                // Add auth header if provided (for Power Automate Workflows with authentication)
+                if (!authHeaderName.isNullOrBlank() && !authHeaderValue.isNullOrBlank()) {
+                    setRequestProperty(authHeaderName, authHeaderValue)
+                }
             }
 
             val bytes = jsonBody.toByteArray(StandardCharsets.UTF_8)
@@ -241,7 +257,7 @@ class WebhookService(
 
     data class TestResult(val success: Boolean, val statusCode: Int, val errorBody: String?)
 
-    fun testWebhook(url: String, platform: WebhookPlatform): TestResult {
+    fun testWebhook(url: String, platform: WebhookPlatform, authHeaderName: String? = null, authHeaderValue: String? = null): TestResult {
         val payload = when (platform) {
             WebhookPlatform.SLACK, WebhookPlatform.TEAMS -> """{"text": "Test message from TeamNotify"}"""
             WebhookPlatform.DISCORD -> """
@@ -258,7 +274,7 @@ class WebhookService(
         }
         val redactedUrl = redact(url)
         LOG.info("Testing webhook delivery to $redactedUrl (Platform: $platform)")
-        val result = postJson(url, payload)
+        val result = postJson(url, payload, authHeaderName, authHeaderValue)
         if (result.success) {
             LOG.info("Test webhook delivered to $redactedUrl (HTTP ${result.statusCode})")
         } else {

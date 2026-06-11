@@ -24,7 +24,7 @@ val buildNumber = if (buildNumberFile.exists()) {
 
 // Check if this is a release build (use -Prelease flag)
 val isRelease = project.hasProperty("release")
-val baseVersion = "1.2.2"
+val baseVersion = "1.3.0"
 version = if (isRelease) {
     "$baseVersion+$buildNumber"
 } else {

@@ -43,7 +43,11 @@ data class TeamNotifyProjectSettings(
                     buildLongerThanAverage = webhookElement.getChild("buildLongerThanAverage")?.textTrim?.toBoolean() ?: false,
                     buildLongerThan = webhookElement.getChild("buildLongerThan")?.textTrim?.toIntOrNull(),
                     includeChanges = webhookElement.getChild("includeChanges")?.textTrim?.toBoolean() ?: true,
-                    branchFilter = webhookElement.getChild("branchFilter")?.textTrim
+                    showBuildLink = webhookElement.getChild("showBuildLink")?.textTrim?.toBoolean() ?: true,
+                    showArtifacts = webhookElement.getChild("showArtifacts")?.textTrim?.toBoolean() ?: true,
+                    branchFilter = webhookElement.getChild("branchFilter")?.textTrim,
+                    authHeaderName = webhookElement.getChild("authHeaderName")?.textTrim,
+                    authHeaderValue = webhookElement.getChild("authHeaderValue")?.textTrim
                 )
                 webhooks.add(webhook)
             } catch (e: Exception) {
@@ -75,8 +79,16 @@ data class TeamNotifyProjectSettings(
                 webhookElement.addContent(Element("buildLongerThan").setText(it.toString()))
             }
             webhookElement.addContent(Element("includeChanges").setText(webhook.includeChanges.toString()))
+            webhookElement.addContent(Element("showBuildLink").setText(webhook.showBuildLink.toString()))
+            webhookElement.addContent(Element("showArtifacts").setText(webhook.showArtifacts.toString()))
             webhook.branchFilter?.let {
                 webhookElement.addContent(Element("branchFilter").setText(it))
+            }
+            webhook.authHeaderName?.let {
+                webhookElement.addContent(Element("authHeaderName").setText(it))
+            }
+            webhook.authHeaderValue?.let {
+                webhookElement.addContent(Element("authHeaderValue").setText(it))
             }
         }
     }

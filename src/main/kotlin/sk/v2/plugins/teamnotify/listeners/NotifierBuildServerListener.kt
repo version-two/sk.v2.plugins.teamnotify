@@ -47,7 +47,11 @@ class NotifierBuildServerListener(
                     webhook.platform,
                     build,
                     "Build started: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}",
-                    webhook.includeChanges
+                    webhook.includeChanges,
+                    webhook.authHeaderName,
+                    webhook.authHeaderValue,
+                    webhook.showBuildLink,
+                    webhook.showArtifacts
                 )
             }
         }
@@ -72,7 +76,11 @@ class NotifierBuildServerListener(
                     webhook.platform,
                     build,
                     "Build cancelled: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}",
-                    webhook.includeChanges
+                    webhook.includeChanges,
+                    webhook.authHeaderName,
+                    webhook.authHeaderValue,
+                    webhook.showBuildLink,
+                    webhook.showArtifacts
                 )
             }
         }
@@ -93,18 +101,18 @@ class NotifierBuildServerListener(
             }
             // On Success
             if (build.buildStatus.isSuccessful && webhook.onSuccess) {
-                webhookService.sendNotification(webhook.url, webhook.platform, build, "Build successful: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges)
+                webhookService.sendNotification(webhook.url, webhook.platform, build, "Build successful: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges, webhook.authHeaderName, webhook.authHeaderValue, webhook.showBuildLink, webhook.showArtifacts)
             }
 
             // On Failure
             if (!build.buildStatus.isSuccessful && webhook.onFailure) {
-                webhookService.sendNotification(webhook.url, webhook.platform, build, "Build failed: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges)
+                webhookService.sendNotification(webhook.url, webhook.platform, build, "Build failed: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges, webhook.authHeaderName, webhook.authHeaderValue, webhook.showBuildLink, webhook.showArtifacts)
             }
 
             // Build Longer Than
             webhook.buildLongerThan?.let {
                 if (build.duration > it) {
-                    webhookService.sendNotification(webhook.url, webhook.platform, build, "Build took longer than $it seconds: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges)
+                    webhookService.sendNotification(webhook.url, webhook.platform, build, "Build took longer than $it seconds: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges, webhook.authHeaderName, webhook.authHeaderValue, webhook.showBuildLink, webhook.showArtifacts)
                 }
             }
 
@@ -112,7 +120,7 @@ class NotifierBuildServerListener(
             if (webhook.buildLongerThanAverage) {
                 val averageDuration = buildDurationService.getAverageBuildDuration(build.buildTypeId!!)
                 if (averageDuration > 0 && build.duration > averageDuration) {
-                    webhookService.sendNotification(webhook.url, webhook.platform, build, "Build took longer than average: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges)
+                    webhookService.sendNotification(webhook.url, webhook.platform, build, "Build took longer than average: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges, webhook.authHeaderName, webhook.authHeaderValue, webhook.showBuildLink, webhook.showArtifacts)
                 }
             }
 
@@ -129,11 +137,11 @@ class NotifierBuildServerListener(
 
                 // On Build Fixed
                 if (webhook.onBuildFixed && currentBuildSuccessful && !previousBuildSuccessful) {
-                    webhookService.sendNotification(webhook.url, webhook.platform, build, "Build fixed: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges)
+                    webhookService.sendNotification(webhook.url, webhook.platform, build, "Build fixed: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges, webhook.authHeaderName, webhook.authHeaderValue, webhook.showBuildLink, webhook.showArtifacts)
                 }
                 // On First Failure
                 if (webhook.onFirstFailure && !currentBuildSuccessful && previousBuildSuccessful) {
-                    webhookService.sendNotification(webhook.url, webhook.platform, build, "First failure: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges)
+                    webhookService.sendNotification(webhook.url, webhook.platform, build, "First failure: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges, webhook.authHeaderName, webhook.authHeaderValue, webhook.showBuildLink, webhook.showArtifacts)
                 }
             }
         }
