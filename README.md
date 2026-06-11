@@ -29,8 +29,8 @@ If you find TeamNotify useful in your CI/CD workflow, consider supporting its co
 
 ## Requirements
 
-*   TeamCity server with API level matching 2025.07 or newer (the plugin targets `2025.07`).
-*   Java 17 runtime (the plugin compiles for JVM target 17).
+*   TeamCity server with API level matching 2026.1 or newer (the plugin targets `2026.1`).
+*   Java 21 runtime (TeamCity 2026.1 requires Java 21; the plugin compiles for JVM target 21). Building also requires a JDK 21 toolchain, which Gradle auto-provisions if one is not already installed.
 
 ## Building the Plugin
 

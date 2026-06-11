@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### ⬆️ Compatibility
+- **Targets TeamCity 2026.1** (`server-api`/`common-api` bumped from 2025.07). TeamCity 2026.1 requires **Java 21**, so the plugin now builds and targets JVM 21 via a JDK 21 Gradle toolchain (auto-provisioned if not installed).
+
 ### 🐛 Bug Fixes
 
 #### Build-level webhooks no longer fail to save
@@ -20,7 +23,8 @@
 - `TeamsPayloadGenerator.kt`: maps status to an Adaptive Card `color`.
 - `WebhookService.kt`: Teams test payload uses the Adaptive Card envelope.
 - `NotifierSettingsController.kt`: Power Automate host regex allows multi-label subdomains; whitespace rejected.
-- `build.gradle.kts`: test suite now runs under the JUnit Platform with both the Jupiter and Vintage engines (previously no tests executed).
+- `build.gradle.kts`: test suite now runs under the JUnit Platform with both the Jupiter and Vintage engines (previously no tests executed); TeamCity API bumped to 2026.1; JDK 21 toolchain; added the `download.jetbrains.com/teamcity-repository` mirror.
+- `settings.gradle.kts`: added the foojay toolchain resolver so JDK 21 auto-provisions.
 
 ## [1.3.0] - 2026-01-22
 

@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 
@@ -33,6 +32,11 @@ version = if (isRelease) {
 
 repositories {
     mavenCentral()
+    // Primary mirror for the TeamCity Open API artifacts (serves 2026.1; the Space repo
+    // below is kept as a fallback and is occasionally unavailable).
+    maven {
+        url = uri("https://download.jetbrains.com/teamcity-repository")
+    }
     maven {
         url = uri("https://maven.pkg.jetbrains.space/public/p/teamcity/teamcity-api")
     }
@@ -52,17 +56,19 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.8.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     implementation(kotlin("stdlib-jdk8"))
-    api("org.jetbrains.teamcity:server-api:2025.07") {
+    api("org.jetbrains.teamcity:server-api:2026.1") {
         exclude(group = "org.springframework")
     }
-    api("org.jetbrains.teamcity:common-api:2025.07") {
+    api("org.jetbrains.teamcity:common-api:2026.1") {
         exclude(group = "org.springframework")
     }
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
+// TeamCity 2026.1 requires Java 21 (its API jar is Java 21 bytecode), so build with a JDK 21
+// toolchain. This sets the compile/test JVM and target for both Kotlin and Java consistently.
+kotlin {
+    jvmToolchain(21)
 }
 
 tasks.test {
