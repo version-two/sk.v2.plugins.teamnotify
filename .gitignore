@@ -5,6 +5,9 @@
 /.gradle/
 /build/
 
+# Docker build artifact export dir
+/out/
+
 # IDE settings
 /.idea/
 *.iml

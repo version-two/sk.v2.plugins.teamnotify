@@ -4,6 +4,7 @@
 
 ### ⬆️ Compatibility
 - **Targets TeamCity 2026.1** (`server-api`/`common-api` bumped from 2025.07). TeamCity 2026.1 requires **Java 21**, so the plugin now builds and targets JVM 21 via a JDK 21 Gradle toolchain (auto-provisioned if not installed).
+- **Added a Java 21 Docker build** (`docker build --target artifact --output type=local,dest=out .`) for building without a local JDK 21.
 
 ### 🐛 Bug Fixes
 
@@ -16,6 +17,9 @@
 - **"Test" now sends the real Adaptive Card envelope for Teams** instead of the legacy `{"text": …}` MessageCard, so a successful test matches real delivery – including Power Automate Workflow webhooks.
 - **Fixed validation of new Power Automate URLs** (`{org}.{region}.environment.api.powerplatform.com`) which were previously rejected.
 - URLs containing raw whitespace are now rejected.
+
+#### Stalled-build detection boundary
+- `BuildStallTracker` now treats a build as stalled when it has been inactive for **at least** the timeout (`>=` instead of `>`), fixing a boundary case (and a timing-dependent test) for very short timeouts.
 
 ### 📋 Technical Details
 - `TeamNotifyProjectSettings.kt`: now holds project webhooks plus per-build-type webhooks and per-build-type locally-disabled URLs in one object; removed `DisabledWebhooksSettings`.

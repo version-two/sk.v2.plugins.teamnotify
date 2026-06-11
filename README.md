@@ -44,6 +44,14 @@ gradlew.bat clean serverPlugin
 
 The packaged plugin `.zip` will be generated in `build/distributions/`, e.g. `team-notify-1.2.0+<build>-SNAPSHOT.zip`.
 
+### Building with Docker (no local JDK required)
+
+TeamCity 2026.1 requires Java 21. If you don't have a JDK 21 toolchain installed, build inside the provided Java 21 container instead – the tests run and the plugin `.zip` is written to `./out`:
+
+```bash
+docker build --target artifact --output type=local,dest=out .
+```
+
 ## Installing the Plugin
 
 1.  Locate the generated `.zip` file in `build/distributions/` (e.g., `team-notify-1.0-SNAPSHOT.zip`).

@@ -1,0 +1,10 @@
+# Keep the build context small and reproducible
+.git
+.gradle
+build
+out
+gradle-8.14.3
+*.zip
+team_notify_logo.psd
+.idea
+*.iml

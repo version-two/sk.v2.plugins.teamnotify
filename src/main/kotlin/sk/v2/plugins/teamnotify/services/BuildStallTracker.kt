@@ -25,7 +25,9 @@ class BuildStallTracker {
         
         // Collect stalled builds first
         for ((buildId, lastActivity) in runningBuilds) {
-            if (now - lastActivity > stallTimeout) {
+            // "stalled" means inactive for at least the timeout; >= (not >) so a 0 ms timeout
+            // always triggers and the boundary doesn't depend on sub-millisecond timing.
+            if (now - lastActivity >= stallTimeout) {
                 stalledBuilds.add(buildId)
             }
         }
