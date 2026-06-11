@@ -1,5 +1,7 @@
 # TeamNotify - TeamCity Webhook Notifier Plugin
 
+[![Build](https://github.com/version-two/sk.v2.plugins.teamnotify/actions/workflows/build.yml/badge.svg)](https://github.com/version-two/sk.v2.plugins.teamnotify/actions/workflows/build.yml)
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/versiontwo)
 
 TeamNotify is a TeamCity plugin that sends highly customizable webhook notifications to Slack, Microsoft Teams, and Discord.
@@ -42,7 +44,7 @@ This project uses the TeamCity Gradle plugin. From the project root, run:
 gradlew.bat clean serverPlugin
 ```
 
-The packaged plugin `.zip` will be generated in `build/distributions/`, e.g. `team-notify-1.2.0+<build>-SNAPSHOT.zip`.
+The packaged plugin `.zip` will be generated in `build/distributions/`, e.g. `team-notify-1.3.0+<build>-SNAPSHOT.zip`.
 
 ### Building with Docker (no local JDK required)
 
@@ -51,6 +53,15 @@ TeamCity 2026.1 requires Java 21. If you don't have a JDK 21 toolchain installed
 ```bash
 docker build --target artifact --output type=local,dest=out .
 ```
+
+### Continuous Integration & Releases
+
+GitHub Actions builds and tests the plugin on JDK 21:
+
+* **Build** (`.github/workflows/build.yml`) – runs `clean test serverPlugin` on every push to `main` and on pull requests, and uploads the packaged plugin `.zip` as a build artifact.
+* **Release** (`.github/workflows/release.yml`) – on pushing a `v*` tag (e.g. `v1.3.0`), builds with `-Prelease` and publishes a GitHub Release with the plugin `.zip` attached.
+
+To cut a release: `git tag v1.3.0 && git push origin v1.3.0`.
 
 ## Installing the Plugin
 

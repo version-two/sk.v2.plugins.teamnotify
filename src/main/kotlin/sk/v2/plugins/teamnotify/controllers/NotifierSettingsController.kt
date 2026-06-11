@@ -269,6 +269,12 @@ class NotifierSettingsController(
         return user.isPermissionGrantedForProject(project.projectId, Permission.EDIT_PROJECT)
     }
 
+    private fun canViewProject(request: HttpServletRequest, project: SProject?): Boolean {
+        if (project == null) return false
+        val user = SessionUser.getUser(request) ?: return false
+        return user.isPermissionGrantedForProject(project.projectId, Permission.VIEW_PROJECT)
+    }
+
     private fun jsonEscape(s: String): String = s
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
@@ -334,10 +340,17 @@ class NotifierSettingsController(
             return null
         }
 
-        // Mutating actions require edit permission on the target project.
-        if (request.method == "POST" && !canEditProject(request, resolveProject(projectId, buildTypeId))) {
+        // Reading requires view permission; mutating actions require edit permission.
+        val targetProject = resolveProject(projectId, buildTypeId)
+        if (request.method == "POST") {
+            if (!canEditProject(request, targetProject)) {
+                response.status = 403
+                response.writer.write("""{"success":false,"error":"Forbidden: you do not have permission to edit this project"}""")
+                return null
+            }
+        } else if (!canViewProject(request, targetProject)) {
             response.status = 403
-            response.writer.write("""{"success":false,"error":"Forbidden: you do not have permission to edit this project"}""")
+            response.writer.write("""{"success":false,"error":"Forbidden: you do not have permission to view this project"}""")
             return null
         }
 

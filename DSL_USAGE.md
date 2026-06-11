@@ -295,13 +295,16 @@ object MyBuild : BuildType({
 ## How Webhooks Are Stored
 
 ### Storage Mechanism
-The plugin uses TeamCity's `ProjectSettingsManager` to store webhook configurations:
-- **Project webhooks**: Stored with key `"team-notify.settings"` in the project's settings
-- **Build type webhooks**: Stored with key `"team-notify.settings.{buildTypeId}"` in the project's settings
-- **DSL webhooks**: Parsed from build features when the build configuration is loaded
+The plugin uses TeamCity's `ProjectSettingsManager` to store webhook configurations. All UI-defined
+data for a project lives in a single settings object under the key `"team-notify.settings"`:
+- **Project webhooks**: the project-level webhook list
+- **Build type webhooks**: keyed by build type id inside the same settings object (there is no
+  separate `team-notify.settings.{buildTypeId}` key)
+- **Locally-disabled inherited webhooks**: tracked per build type inside the same settings object
+- **DSL webhooks**: parsed from `teamnotify.webhook` build features when the configuration is loaded
 
 ### Storage Format
-Webhooks are stored as `TeamNotifyProjectSettings` objects containing a list of `WebhookConfiguration` instances. Each configuration includes:
+Webhooks are stored in a `TeamNotifyProjectSettings` object containing `WebhookConfiguration` instances. Each configuration includes:
 - `url`: The webhook URL (String)
 - `platform`: The platform enum (SLACK, TEAMS, or DISCORD)
 - `enabled`: Whether the webhook is active (Boolean)

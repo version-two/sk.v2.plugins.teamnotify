@@ -5,6 +5,7 @@ import jetbrains.buildServer.serverSide.auth.Permission
 import jetbrains.buildServer.web.openapi.PagePlaces
 import jetbrains.buildServer.web.openapi.PluginDescriptor
 import jetbrains.buildServer.web.openapi.PositionConstraint
+import jetbrains.buildServer.web.util.SessionUser
 import org.jetbrains.annotations.NotNull
 import sk.v2.plugins.teamnotify.services.WebhookManager
 import javax.servlet.http.HttpServletRequest
@@ -24,7 +25,10 @@ class TeamNotifyAdminPageExtension(
     }
 
     override fun isAvailable(request: HttpServletRequest): Boolean {
-        return super.isAvailable(request)
+        // This page lists every webhook across all projects, so restrict the tab to server admins
+        // (the controller enforces the same; this keeps the tab from even appearing for others).
+        val user = SessionUser.getUser(request) ?: return false
+        return user.isPermissionGrantedGlobally(Permission.CHANGE_SERVER_SETTINGS) && super.isAvailable(request)
     }
 
     override fun fillModel(model: MutableMap<String, Any>, request: HttpServletRequest) {

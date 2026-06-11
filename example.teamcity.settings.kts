@@ -3,10 +3,10 @@
  * including the new onCancel trigger introduced in v1.2.0
  */
 
-import jetbrains.buildServer.configs.kotlin.v2019_2.*
-import jetbrains.buildServer.configs.kotlin.v2019_2.buildFeatures.buildFeature
+import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.buildFeature
 
-version = "2023.11"
+version = "2026.1"
 
 project {
     
@@ -38,7 +38,7 @@ project {
                 
                 // Additional options
                 param("webhook.includeChanges", "true")
-                param("webhook.branchFilter", "main,develop,release/*")
+                param("webhook.branchFilter", "+:main,+:develop,+:release/*")
             }
             
             // You can add multiple webhooks for different platforms

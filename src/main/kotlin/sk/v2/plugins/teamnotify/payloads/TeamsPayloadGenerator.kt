@@ -54,7 +54,8 @@ class TeamsPayloadGenerator : PayloadGenerator {
                 val suffix = if (rev.isNotEmpty()) " (${rev})" else ""
                 "• **${escape(who)}**: ${escape(shortMsg)}${suffix}"
             }
-            val changesText = items.joinToString("\\n\\n")
+            // Use real newlines; escape() converts them to the JSON \n escape so Teams renders line breaks.
+            val changesText = items.joinToString("\n\n")
             """,{
                 "type": "TextBlock",
                 "text": "**Recent Changes:**",

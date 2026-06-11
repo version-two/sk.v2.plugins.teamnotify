@@ -2,7 +2,14 @@
 
 ## [Unreleased]
 
+### 🔧 Tooling
+- **Added GitHub Actions CI** – `build.yml` builds and tests on JDK 21 and uploads the plugin zip; `release.yml` publishes a GitHub Release with the zip when a `v*` tag is pushed.
+- Updated docs/examples to TeamCity 2026.1 (current Kotlin DSL imports, removed the obsolete `v2019_2` examples and the long-removed custom `teamNotifyWebhook {}` DSL example), and corrected stale storage/version/retirement notes.
+
 ### 🔒 Security & robustness
+- **Branch filters now follow TeamCity's last-match-wins semantics** – an exclude rule after a broad include (e.g. `+:*,-:feature/*`) now correctly suppresses the excluded branches.
+- **Teams "Recent Changes" now render line breaks** instead of literal `\n` text.
+- **The admin overview tab is hidden from non-administrators** (it lists every project's webhooks), and reading per-project webhook config now requires `VIEW_PROJECT`.
 - **Webhook delivery no longer blocks TeamCity's build-event thread** – notifications are dispatched on a bounded background executor, so a slow or unreachable webhook can no longer stall build processing.
 - **Admin backup/restore and the admin overview now require server-administrator permission**; the backup endpoint previously exposed every webhook URL and auth token to any authenticated user.
 - **Per-project webhook editing now requires `EDIT_PROJECT` permission**, and the test-webhook endpoint requires an authenticated user.

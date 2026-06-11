@@ -113,8 +113,8 @@ Run tests with:
 ## Known Issues and Limitations
 
 ### Microsoft Teams
-- Power Automate (Legacy) URLs using `logic.azure.com` will be deprecated on November 30, 2025
-- Users should migrate to the new PowerPlatform format
+- Office 365 Connector webhooks were retired on March 31, 2026; migrate to a Power Automate Workflow webhook
+- Prefer the new PowerPlatform format (`environment.api.powerplatform.com`) over legacy `logic.azure.com` URLs
 
 ### Branch Filters
 - Use TeamCity branch filter syntax: `+:main,-:feature/*`

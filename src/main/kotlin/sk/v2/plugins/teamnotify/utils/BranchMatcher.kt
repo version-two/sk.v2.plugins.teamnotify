@@ -13,15 +13,17 @@ object BranchMatcher {
         
         val rules = parseFilter(filterPattern)
         if (rules.isEmpty()) return true
-        
+
+        // TeamCity branch-filter semantics are last-match-wins. The default (when no rule matches)
+        // is "excluded" if there is at least one include rule, otherwise "included".
+        val hasIncludeRules = rules.any { !it.isExclude }
+        var included = !hasIncludeRules
         for (rule in rules) {
             if (matchesPattern(branchName, rule.pattern)) {
-                return !rule.isExclude
+                included = !rule.isExclude
             }
         }
-        
-        val hasIncludeRules = rules.any { !it.isExclude }
-        return !hasIncludeRules
+        return included
     }
     
     private fun parseFilter(filterPattern: String): List<FilterRule> {
