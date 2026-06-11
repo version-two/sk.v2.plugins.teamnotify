@@ -1,0 +1,15 @@
+# Normalize line endings so the repo stores text as LF and avoids CRLF churn on Windows
+* text=auto eol=lf
+
+# Windows batch scripts must stay CRLF
+*.bat text eol=crlf
+
+# Binary assets (never normalize / diff as text)
+*.png binary
+*.psd binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.jar binary

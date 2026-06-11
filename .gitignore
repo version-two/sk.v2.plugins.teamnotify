@@ -5,8 +5,14 @@
 /.gradle/
 /build/
 
+# Extracted Gradle distribution (the wrapper downloads its own under GRADLE_USER_HOME)
+/gradle-8.14.3/
+
 # Docker build artifact export dir
 /out/
+
+# Local Claude Code settings (machine-specific)
+/.claude/settings.local.json
 
 # IDE settings
 /.idea/

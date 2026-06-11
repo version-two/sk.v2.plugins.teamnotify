@@ -118,18 +118,19 @@ class NotifierBuildServerListener(
 
             // Build Longer Than Average
             if (webhook.buildLongerThanAverage) {
-                val averageDuration = buildDurationService.getAverageBuildDuration(build.buildTypeId!!)
+                val averageDuration = buildDurationService.getAverageBuildDuration(build.buildTypeId)
                 if (averageDuration > 0 && build.duration > averageDuration) {
                     webhookService.sendNotification(webhook.url, webhook.platform, build, "Build took longer than average: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges, webhook.authHeaderName, webhook.authHeaderValue, webhook.showBuildLink, webhook.showArtifacts)
                 }
             }
 
             // On Build Fixed / On First Failure
-            // Get the previous finished build for this build type
-            val buildType = build.buildType
-            val previousFinishedBuild = if (buildType != null) {
-                buildType.getHistory().firstOrNull { finishedBuild -> finishedBuild.buildId != build.buildId }
-            } else null
+            // Get the previous finished build for this build type (buildType is non-null here)
+            val previousFinishedBuild = buildType.getHistory().firstOrNull { finishedBuild ->
+                finishedBuild.buildId != build.buildId &&
+                    !finishedBuild.isPersonal &&
+                    finishedBuild.canceledInfo == null
+            }
 
             if (previousFinishedBuild != null) {
                 val currentBuildSuccessful = build.buildStatus.isSuccessful

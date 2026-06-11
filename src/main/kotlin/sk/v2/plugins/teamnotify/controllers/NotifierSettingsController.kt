@@ -9,12 +9,15 @@ import sk.v2.plugins.teamnotify.utils.BranchMatcher
 import jetbrains.buildServer.controllers.BaseController
 import jetbrains.buildServer.web.openapi.PluginDescriptor
 import jetbrains.buildServer.web.openapi.WebControllerManager
+import jetbrains.buildServer.web.util.SessionUser
 import org.springframework.web.servlet.ModelAndView
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 import jetbrains.buildServer.serverSide.SBuildServer
+import jetbrains.buildServer.serverSide.SProject
+import jetbrains.buildServer.serverSide.auth.Permission
 import java.net.URLEncoder
 
 class NotifierSettingsController(
@@ -39,6 +42,13 @@ class NotifierSettingsController(
         }
         
         if (path.endsWith("/notifier/testWebhook.html")) {
+            // Testing sends a real HTTP request; require an authenticated user.
+            if (SessionUser.getUser(request) == null) {
+                response.contentType = "application/json; charset=utf-8"
+                response.status = 403
+                response.writer.write("""{"success":false,"status":403,"message":"Forbidden"}""")
+                return null
+            }
             val webhookUrl = request.getParameter("webhookUrl")?.trim()
             val platformRaw = request.getParameter("platform")?.trim()?.uppercase()
             val authHeaderName = request.getParameter("authHeaderName")?.trim()?.takeIf { it.isNotEmpty() }
@@ -71,7 +81,9 @@ class NotifierSettingsController(
         
         val mv = ModelAndView(pluginDescriptor.getPluginResourcesPath("editNotifierSettings.jsp"))
 
-        if (request.method == "POST" && project != null) {
+        if (request.method == "POST" && project != null && !canEditProject(request, project)) {
+            mv.model["validationErrors"] = listOf("You do not have permission to edit webhooks for this project.")
+        } else if (request.method == "POST" && project != null) {
             val action = request.getParameter("action")
             if (action == "add") {
                 val webhookUrl = request.getParameter("webhookUrl")?.trim()
@@ -241,6 +253,29 @@ class NotifierSettingsController(
         }
     }
 
+    private fun resolveProject(projectId: String?, buildTypeId: String?): SProject? = when {
+        !buildTypeId.isNullOrBlank() ->
+            (sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)
+                ?: sBuildServer.projectManager.findBuildTypeById(buildTypeId))?.project
+        !projectId.isNullOrBlank() ->
+            sBuildServer.projectManager.findProjectByExternalId(projectId)
+                ?: sBuildServer.projectManager.findProjectById(projectId)
+        else -> null
+    }
+
+    private fun canEditProject(request: HttpServletRequest, project: SProject?): Boolean {
+        if (project == null) return false
+        val user = SessionUser.getUser(request) ?: return false
+        return user.isPermissionGrantedForProject(project.projectId, Permission.EDIT_PROJECT)
+    }
+
+    private fun jsonEscape(s: String): String = s
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+
     private fun isValidWebhookUrl(platform: WebhookPlatform, url: String): Boolean {
         val normalizedUrl = url.trim()
         if (normalizedUrl.isEmpty() || normalizedUrl.length > 2048) {
@@ -291,14 +326,21 @@ class NotifierSettingsController(
         if (!validEntity) {
             response.status = 400
             val errorMsg = when {
-                !buildTypeId.isNullOrBlank() -> "Build Configuration not found: $buildTypeId"
-                !projectId.isNullOrBlank() -> "Project not found: $projectId"
+                !buildTypeId.isNullOrBlank() -> "Build Configuration not found: ${jsonEscape(buildTypeId)}"
+                !projectId.isNullOrBlank() -> "Project not found: ${jsonEscape(projectId)}"
                 else -> "Project or Build Configuration not found"
             }
             response.writer.write("""{"success":false,"error":"$errorMsg"}""")
             return null
         }
-        
+
+        // Mutating actions require edit permission on the target project.
+        if (request.method == "POST" && !canEditProject(request, resolveProject(projectId, buildTypeId))) {
+            response.status = 403
+            response.writer.write("""{"success":false,"error":"Forbidden: you do not have permission to edit this project"}""")
+            return null
+        }
+
         when (request.method) {
             "GET" -> {
                 val webhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId)

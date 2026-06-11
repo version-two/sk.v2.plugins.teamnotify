@@ -2,6 +2,7 @@ package sk.v2.plugins.teamnotify.services
 
 import jetbrains.buildServer.serverSide.settings.ProjectSettingsManager
 import jetbrains.buildServer.serverSide.SBuildServer
+import jetbrains.buildServer.serverSide.SBuildType
 import jetbrains.buildServer.serverSide.ProjectManager
 import jetbrains.buildServer.serverSide.SProject
 import org.junit.jupiter.api.BeforeEach
@@ -72,6 +73,26 @@ class WebhookManagerTest {
 
         assert(settings.webhooks == webhookList)
         verify(project, times(1)).persist()
+    }
+
+    @Test
+    fun `saveWebhooksForBuildType stores under the single settings key without per-build-type registration`() {
+        // Regression test for "corresponding factory was not registered": build-level webhooks
+        // are stored in the per-build-type map of the project's single settings object, and no
+        // settings factory is registered dynamically.
+        val settings = TeamNotifyProjectSettings()
+        `when`(projectSettingsManager.getSettings(eq("projectId"), anyString())).thenReturn(settings)
+
+        val buildType = mock(SBuildType::class.java)
+        `when`(buildType.buildTypeId).thenReturn("bt11")
+        `when`(buildType.project).thenReturn(project)
+
+        val webhook = WebhookConfiguration("url-bt", WebhookPlatform.SLACK, onSuccess = true)
+        webhookManager.saveWebhooksForBuildType(buildType, listOf(webhook))
+
+        assert(settings.buildTypeWebhooks["bt11"] == listOf(webhook))
+        verify(project, times(1)).persist()
+        verify(projectSettingsManager, never()).registerSettingsFactory(anyString(), any())
     }
 
     @Test

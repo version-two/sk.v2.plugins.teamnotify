@@ -4,6 +4,7 @@ import jetbrains.buildServer.serverSide.SBuildServer
 import org.springframework.beans.factory.DisposableBean
 import org.springframework.beans.factory.InitializingBean
 import sk.v2.plugins.teamnotify.model.WebhookConfiguration
+import sk.v2.plugins.teamnotify.utils.BranchMatcher
 import java.util.Timer
 import java.util.TimerTask
 
@@ -22,9 +23,14 @@ class StalledBuildTimer(
                 buildStallTracker.checkForStalledBuilds(300000) { buildId ->
                     sBuildServer.findRunningBuildById(buildId)?.let { build ->
                         val buildType = build.buildType ?: return@let
-                        // Get webhooks from build type (includes inherited webhooks)
-                        val webhooks = webhookManager.getWebhooksForBuildType(buildType)
+                        val branchName = build.branch?.displayName
+                        // Use effective webhooks so enabled/locally-disabled state is honored,
+                        // and apply the branch filter, consistent with the other triggers.
+                        val webhooks = webhookManager.getEffectiveWebhooksForBuildType(buildType)
                         for (webhook: WebhookConfiguration in webhooks) {
+                            if (!BranchMatcher.matches(branchName, webhook.branchFilter)) {
+                                continue
+                            }
                             if (webhook.onStall) {
                                 webhookService.sendNotification(webhook.url, webhook.platform, build, "Build stalled: ${build.buildType?.name.orEmpty()} #${build.buildNumber.orEmpty()}", webhook.includeChanges, webhook.authHeaderName, webhook.authHeaderValue, webhook.showBuildLink, webhook.showArtifacts)
                             }

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### 🔒 Security & robustness
+- **Webhook delivery no longer blocks TeamCity's build-event thread** – notifications are dispatched on a bounded background executor, so a slow or unreachable webhook can no longer stall build processing.
+- **Admin backup/restore and the admin overview now require server-administrator permission**; the backup endpoint previously exposed every webhook URL and auth token to any authenticated user.
+- **Per-project webhook editing now requires `EDIT_PROJECT` permission**, and the test-webhook endpoint requires an authenticated user.
+- **Artifact links are now real** – the notification artifact buttons enumerate actual build artifacts via the TeamCity API instead of emitting guessed, wildcard URLs that didn't resolve.
+- Exception messages in JSON responses are now properly escaped (previously could produce malformed JSON).
+- Build-average duration now samples only recent history instead of materializing the entire build history.
+- First-failure/fixed detection ignores personal and canceled builds when finding the previous build.
+
+### 🐛 Bug Fixes (admin & UI)
+- **Stalled-build notifications now honor the enabled flag, locally-disabled state, and branch filter**, consistent with the other triggers.
+- **Build-configuration webhooks now appear in the admin overview** and can be deleted/toggled there (`getAllWebhooks` previously returned only project-level webhooks).
+- **"On First Failure" and "On Fixed" can now be selected when creating a webhook in the UI**, and "On Cancel" is included in trigger validation and the form reset.
+
 ### ⬆️ Compatibility
 - **Targets TeamCity 2026.1** (`server-api`/`common-api` bumped from 2025.07). TeamCity 2026.1 requires **Java 21**, so the plugin now builds and targets JVM 21 via a JDK 21 Gradle toolchain (auto-provisioned if not installed).
 - **Added a Java 21 Docker build** (`docker build --target artifact --output type=local,dest=out .`) for building without a local JDK 21.

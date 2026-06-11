@@ -35,7 +35,8 @@ class WebhookManager(
 
     fun getWebhooks(project: SProject): List<WebhookConfiguration> {
         return try {
-            projectSettings(project).webhooks
+            // Return a snapshot; callers must not mutate the persisted settings' backing list.
+            projectSettings(project).webhooks.toList()
         } catch (e: Exception) {
             // If settings can't be loaded (e.g., during plugin update), return empty list
             emptyList()
@@ -170,7 +171,7 @@ class WebhookManager(
                 if (buildType != null) {
                     // Only return build-type specific webhooks, not inherited ones
                     try {
-                        projectSettings(buildType.project).buildTypeWebhooks[buildType.buildTypeId].orEmpty()
+                        projectSettings(buildType.project).buildTypeWebhooks[buildType.buildTypeId].orEmpty().toList()
                     } catch (e: Exception) {
                         emptyList()
                     }
@@ -227,8 +228,10 @@ class WebhookManager(
         
         for (project in allProjects) {
             try {
-                val webhooks = getWebhooks(project)
-                for (webhook in webhooks) {
+                val settings = projectSettings(project)
+
+                // Project-level webhooks
+                for (webhook in settings.webhooks) {
                     allWebhooks.add(
                         WebhookWithProjectInfo(
                             webhook = webhook,
@@ -237,12 +240,28 @@ class WebhookManager(
                         )
                     )
                 }
+
+                // Build-configuration-level webhooks (keyed by build type internal id)
+                for ((buildTypeInternalId, webhooks) in settings.buildTypeWebhooks) {
+                    val buildType = sBuildServer.projectManager.findBuildTypeById(buildTypeInternalId)
+                    for (webhook in webhooks) {
+                        allWebhooks.add(
+                            WebhookWithProjectInfo(
+                                webhook = webhook,
+                                projectName = project.name,
+                                projectId = project.externalId,
+                                buildTypeName = buildType?.name,
+                                buildTypeId = buildType?.externalId
+                            )
+                        )
+                    }
+                }
             } catch (e: Exception) {
                 // Skip projects that don't have webhook settings or have errors
                 continue
             }
         }
-        
+
         return allWebhooks
     }
     

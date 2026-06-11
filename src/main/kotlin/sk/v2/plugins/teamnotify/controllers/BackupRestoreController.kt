@@ -4,7 +4,9 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import jetbrains.buildServer.controllers.BaseController
 import jetbrains.buildServer.serverSide.SBuildServer
+import jetbrains.buildServer.serverSide.auth.Permission
 import jetbrains.buildServer.web.openapi.WebControllerManager
+import jetbrains.buildServer.web.util.SessionUser
 import org.springframework.web.servlet.ModelAndView
 import sk.v2.plugins.teamnotify.model.WebhookConfiguration
 import sk.v2.plugins.teamnotify.model.WebhookPlatform
@@ -30,13 +32,23 @@ class BackupRestoreController(
     }
 
     override fun doHandle(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
+        // Backup exposes every webhook URL and auth token; restore writes configuration.
+        // Both must be restricted to server administrators.
+        val user = SessionUser.getUser(request)
+        if (user == null || !user.isPermissionGrantedGlobally(Permission.CHANGE_SERVER_SETTINGS)) {
+            response.status = 403
+            response.contentType = "application/json; charset=utf-8"
+            response.writer.write(gson.toJson(mapOf("success" to false, "error" to "Forbidden: server administrator permission required")))
+            return null
+        }
+
         val path = request.requestURI ?: ""
-        
+
         when {
             path.endsWith("/backup.html") -> handleBackup(response)
             path.endsWith("/restore.html") -> handleRestore(request, response)
         }
-        
+
         return null
     }
     
@@ -77,10 +89,10 @@ class BackupRestoreController(
         } catch (e: Exception) {
             response.status = 500
             response.contentType = "application/json"
-            response.writer.write("""{"success":false,"error":"${e.message}"}""")
+            response.writer.write(gson.toJson(mapOf("success" to false, "error" to (e.message ?: "Unknown error"))))
         }
     }
-    
+
     private fun handleRestore(request: HttpServletRequest, response: HttpServletResponse) {
         response.contentType = "application/json; charset=utf-8"
         
@@ -172,7 +184,7 @@ class BackupRestoreController(
             
         } catch (e: Exception) {
             response.status = 500
-            response.writer.write("""{"success":false,"error":"Failed to restore: ${e.message}"}""")
+            response.writer.write(gson.toJson(mapOf("success" to false, "error" to "Failed to restore: ${e.message}")))
         }
     }
     

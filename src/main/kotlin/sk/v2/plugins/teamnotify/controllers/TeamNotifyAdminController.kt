@@ -2,8 +2,10 @@ package sk.v2.plugins.teamnotify.controllers
 
 import jetbrains.buildServer.controllers.BaseController
 import jetbrains.buildServer.serverSide.SBuildServer
+import jetbrains.buildServer.serverSide.auth.Permission
 import jetbrains.buildServer.web.openapi.PluginDescriptor
 import jetbrains.buildServer.web.openapi.WebControllerManager
+import jetbrains.buildServer.web.util.SessionUser
 import org.springframework.web.servlet.ModelAndView
 import sk.v2.plugins.teamnotify.services.WebhookManager
 import javax.servlet.http.HttpServletRequest
@@ -22,6 +24,16 @@ class TeamNotifyAdminController(
     }
 
     override fun doHandle(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
+        // The admin overview lists every webhook across all projects and can delete/toggle them,
+        // so it is restricted to server administrators.
+        val user = SessionUser.getUser(request)
+        if (user == null || !user.isPermissionGrantedGlobally(Permission.CHANGE_SERVER_SETTINGS)) {
+            response.status = 403
+            response.contentType = "application/json; charset=utf-8"
+            response.writer.write("""{"success":false,"error":"Forbidden: server administrator permission required"}""")
+            return null
+        }
+
         val path = request.requestURI ?: ""
 
         if (path.endsWith("/api.html")) {
@@ -73,7 +85,7 @@ class TeamNotifyAdminController(
                     }
                 } catch (e: Exception) {
                     response.status = 500
-                    val errorMsg = e.message?.replace("\"", "\\\"") ?: "Unknown error"
+                    val errorMsg = e.message?.let { jsonEscape(it) } ?: "Unknown error"
                     response.writer.write("""{"success":false,"error":"Failed to delete webhook: $errorMsg"}""")
                 }
             }
@@ -94,7 +106,7 @@ class TeamNotifyAdminController(
                     }
                 } catch (e: Exception) {
                     response.status = 500
-                    val errorMsg = e.message?.replace("\"", "\\\"") ?: "Unknown error"
+                    val errorMsg = e.message?.let { jsonEscape(it) } ?: "Unknown error"
                     response.writer.write("""{"success":false,"error":"Failed to toggle webhook: $errorMsg"}""")
                 }
             }
@@ -106,4 +118,11 @@ class TeamNotifyAdminController(
 
         return null
     }
+
+    private fun jsonEscape(s: String): String = s
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
 }

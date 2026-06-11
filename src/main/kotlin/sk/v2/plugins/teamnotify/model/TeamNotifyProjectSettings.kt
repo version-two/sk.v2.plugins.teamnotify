@@ -21,11 +21,6 @@ data class TeamNotifyProjectSettings(
     val disabledByBuildType: MutableMap<String, MutableSet<String>> = mutableMapOf()
 ) : ProjectSettings {
 
-    companion object {
-        // This ID must remain stable across plugin versions
-        const val SETTINGS_ID = "team-notify-webhooks"
-    }
-
     override fun readFrom(parentElement: Element) {
         webhooks.clear()
         buildTypeWebhooks.clear()

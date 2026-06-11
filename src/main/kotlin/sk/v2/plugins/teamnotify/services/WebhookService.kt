@@ -10,22 +10,44 @@ import sk.v2.plugins.teamnotify.payloads.ChangeSummary
 import sk.v2.plugins.teamnotify.payloads.ArtifactSummary
 import jetbrains.buildServer.serverSide.SRunningBuild
 import jetbrains.buildServer.serverSide.SBuildServer
-import jetbrains.buildServer.vcs.SVcsModification
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifact
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifacts
+import jetbrains.buildServer.serverSide.artifacts.BuildArtifactsViewMode
+import org.springframework.beans.factory.DisposableBean
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.Executors
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.TimeUnit
 
 class WebhookService(
     private val sBuildServer: SBuildServer
-) {
+) : DisposableBean {
 
     private val LOG = Logger.getInstance(WebhookService::class.java.name)
     private val slackPayloadGenerator = SlackPayloadGenerator()
     private val teamsPayloadGenerator = TeamsPayloadGenerator()
     private val discordPayloadGenerator = DiscordPayloadGenerator()
+
+    // Notifications are delivered off the caller's thread. The build-event listener calls this on
+    // TeamCity's event dispatch thread, and a blocking HTTP POST (up to 25s on timeout) per webhook
+    // must never stall build processing.
+    private val executor: ExecutorService = Executors.newFixedThreadPool(4) { r ->
+        Thread(r, "teamnotify-webhook").apply { isDaemon = true }
+    }
+
+    override fun destroy() {
+        executor.shutdown()
+        try {
+            executor.awaitTermination(5, TimeUnit.SECONDS)
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+    }
 
     fun sendNotification(
         url: String,
@@ -38,7 +60,28 @@ class WebhookService(
         showBuildLink: Boolean = true,
         showArtifacts: Boolean = true
     ) {
-        // Backward-compatible entrypoint: construct a minimal NotificationContext
+        // Build the context and deliver on a background thread so the caller (build-event
+        // listener) is never blocked by webhook I/O.
+        executor.submit {
+            try {
+                dispatch(url, platform, build, message, includeChanges, authHeaderName, authHeaderValue, showBuildLink, showArtifacts)
+            } catch (e: Exception) {
+                LOG.warn("Failed to build/send webhook notification to ${redact(url)}: ${e.message}")
+            }
+        }
+    }
+
+    private fun dispatch(
+        url: String,
+        platform: WebhookPlatform,
+        build: SRunningBuild,
+        message: String,
+        includeChanges: Boolean,
+        authHeaderName: String?,
+        authHeaderValue: String?,
+        showBuildLink: Boolean,
+        showArtifacts: Boolean
+    ) {
         val ctx = NotificationContext(
             status = when {
                 message.contains("started", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.STARTED
@@ -124,69 +167,43 @@ class WebhookService(
     
     private fun collectArtifacts(build: SRunningBuild): List<ArtifactSummary> {
         return try {
-            // Only collect artifacts for finished builds
-            if (!build.isFinished) return emptyList()
-            
+            // Only collect artifacts for finished builds that actually have artifacts
+            if (!build.isFinished || !build.isArtifactsExists) return emptyList()
+
             val rootUrl = sBuildServer.rootUrl?.trimEnd('/') ?: return emptyList()
-            val buildType = build.buildType ?: return emptyList()
-            
-            val artifacts = mutableListOf<ArtifactSummary>()
-            
-            // TeamCity's plugin API doesn't provide direct access to enumerate artifact files
-            // The recommended approach is to use REST API or know the artifact paths beforehand
-            
-            // For known artifact patterns in common build types, we can provide direct links
-            // These are based on common conventions:
-            
-            // 1. Check if build has artifacts at all
-            if (build.isArtifactsExists) {
-                // 2. For plugin builds (like this one), artifacts are typically in distributions/
-                if (buildType.name.contains("plugin", ignoreCase = true) || 
-                    buildType.project.name.contains("notify", ignoreCase = true)) {
-                    // TeamCity plugins typically produce a ZIP in build/distributions/
-                    val projectName = buildType.project.name.replace(Regex("[^a-zA-Z0-9-]"), "-").lowercase()
-                    val buildNumber = build.buildNumber ?: "unknown"
-                    
-                    // Standard plugin distribution ZIP
-                    artifacts.add(ArtifactSummary(
-                        name = "team-notify-${buildNumber}.zip",
-                        path = "distributions/team-notify-*.zip",
-                        size = null,
-                        downloadUrl = "$rootUrl/repository/download/${buildType.externalId}/${build.buildId}:id/distributions/team-notify-*.zip"
-                    ))
-                }
-                
-                // 3. For Java/Kotlin projects, common artifacts
-                if (buildType.name.contains("java", ignoreCase = true) || 
-                    buildType.name.contains("kotlin", ignoreCase = true) ||
-                    buildType.name.contains("jar", ignoreCase = true)) {
-                    // JAR files in build/libs/
-                    artifacts.add(ArtifactSummary(
-                        name = "Application JAR",
-                        path = "build/libs/*.jar",
-                        size = null,
-                        downloadUrl = "$rootUrl/repository/download/${buildType.externalId}/${build.buildId}:id/build/libs/*.jar"
-                    ))
-                }
-                
-                // 4. For web projects
-                if (buildType.name.contains("web", ignoreCase = true) || 
-                    buildType.name.contains("dist", ignoreCase = true)) {
-                    artifacts.add(ArtifactSummary(
-                        name = "Distribution Package",
-                        path = "dist.zip",
-                        size = null,
-                        downloadUrl = "$rootUrl/repository/download/${buildType.externalId}/${build.buildId}:id/dist.zip"
-                    ))
-                }
-            }
-            
-            // Return empty list if no artifacts detected
-            // The payload generators will fall back to "Browse Artifacts" link
-            artifacts
+            val externalId = build.buildType?.externalId ?: return emptyList()
+
+            // Enumerate the real artifact files via the TeamCity API rather than guessing paths.
+            val result = mutableListOf<ArtifactSummary>()
+            build.getArtifacts(BuildArtifactsViewMode.VIEW_DEFAULT)
+                .iterateArtifacts(object : BuildArtifacts.BuildArtifactsProcessor {
+                    override fun processBuildArtifact(artifact: BuildArtifact): BuildArtifacts.BuildArtifactsProcessor.Continuation {
+                        if (artifact.isFile) {
+                            val rel = artifact.relativePath
+                            result.add(
+                                ArtifactSummary(
+                                    name = artifact.name,
+                                    path = rel,
+                                    size = artifact.size,
+                                    downloadUrl = "$rootUrl/repository/download/$externalId/${build.buildId}:id/$rel"
+                                )
+                            )
+                        }
+                        return if (result.size >= MAX_ARTIFACTS) {
+                            BuildArtifacts.BuildArtifactsProcessor.Continuation.BREAK
+                        } else {
+                            BuildArtifacts.BuildArtifactsProcessor.Continuation.CONTINUE
+                        }
+                    }
+                })
+            result
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    private companion object {
+        const val MAX_ARTIFACTS = 10
     }
 
     private data class HttpResult(
