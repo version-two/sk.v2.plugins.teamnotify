@@ -246,11 +246,27 @@ class NotifierSettingsController(
         val page = request.getParameter("pageUrl")
         val candidates = listOf(ref, ret, page).filterNotNull()
         return candidates.firstOrNull { url ->
-            url.contains("/project", ignoreCase = true) ||
-            url.contains("projectSettings", ignoreCase = true) ||
-            url.contains("/buildType", ignoreCase = true) ||
-            url.contains("editBuildType", ignoreCase = true)
+            isSafeReturnUrl(url) && (
+                url.contains("/project", ignoreCase = true) ||
+                url.contains("projectSettings", ignoreCase = true) ||
+                url.contains("/buildType", ignoreCase = true) ||
+                url.contains("editBuildType", ignoreCase = true)
+            )
         }
+    }
+
+    // Guard against open redirects: only accept same-origin relative URLs. Anything carrying its own
+    // scheme/authority (absolute URLs, protocol-relative "//host", backslash tricks) is rejected so an
+    // attacker-supplied returnUrl/pageUrl/Referer cannot bounce the user off to another origin.
+    private fun isSafeReturnUrl(url: String): Boolean {
+        val trimmed = url.trim()
+        if (trimmed.isEmpty()) return false
+        if (!trimmed.startsWith("/")) return false        // must be a server-relative path
+        if (trimmed.startsWith("//")) return false        // protocol-relative -> external host
+        if (trimmed.startsWith("/\\") || trimmed.contains("\\")) return false
+        // A scheme can only legally precede the path, so a relative path must never contain "://".
+        if (trimmed.contains("://")) return false
+        return true
     }
 
     private fun resolveProject(projectId: String?, buildTypeId: String?): SProject? = when {
@@ -372,7 +388,7 @@ class NotifierSettingsController(
                         "includeChanges": ${webhook.includeChanges},
                         "showBuildLink": ${webhook.showBuildLink},
                         "showArtifacts": ${webhook.showArtifacts},
-                        "branchFilter": ${if (webhook.branchFilter != null) "\"${webhook.branchFilter.replace("\"", "\\\"")}\"" else "null"},
+                        "branchFilter": ${if (webhook.branchFilter != null) "\"${jsonEscape(webhook.branchFilter)}\"" else "null"},
                         "hasAuth": ${!webhook.authHeaderName.isNullOrBlank() && !webhook.authHeaderValue.isNullOrBlank()},
                         "enabled": ${webhook.enabled}
                     }"""

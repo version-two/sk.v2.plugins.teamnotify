@@ -15,8 +15,13 @@
 - **Per-project webhook editing now requires `EDIT_PROJECT` permission**, and the test-webhook endpoint requires an authenticated user.
 - **Artifact links are now real** – the notification artifact buttons enumerate actual build artifacts via the TeamCity API instead of emitting guessed, wildcard URLs that didn't resolve.
 - Exception messages in JSON responses are now properly escaped (previously could produce malformed JSON).
-- Build-average duration now samples only recent history instead of materializing the entire build history.
+- Build-average duration now samples only recent history instead of materializing the entire build history, and excludes personal and canceled builds.
 - First-failure/fixed detection ignores personal and canceled builds when finding the previous build.
+- **First-failure/fixed detection is now branch-aware** – the previous build is matched within the same branch, so a green `main` build can no longer be reported as "fixing" a red feature-branch build (or vice versa).
+- **Shared per-project settings are now accessed under a lock** – the build-event thread, stall timer, and UI/REST threads all read and mutate the same settings collections; every read-modify-write (and surrounding `persist()`) is now serialized to prevent races and `ConcurrentModificationException`.
+- **Hardened the settings controller against open redirects** – `returnUrl`/`pageUrl`/`Referer` values are now restricted to same-origin relative paths, so an attacker-supplied absolute or protocol-relative URL can no longer bounce the user to another origin.
+- **Toast notifications render server/error messages as text, not HTML** – removes a DOM-based XSS sink in both the per-project and admin pages.
+- The `branchFilter` value returned to the UI is now fully JSON-escaped (previously only quotes were escaped).
 
 ### 🐛 Bug Fixes (admin & UI)
 - **Stalled-build notifications now honor the enabled flag, locally-disabled state, and branch filter**, consistent with the other triggers.

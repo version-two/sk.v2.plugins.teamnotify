@@ -20,8 +20,10 @@ import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.Executors
+import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 class WebhookService(
@@ -35,16 +37,23 @@ class WebhookService(
 
     // Notifications are delivered off the caller's thread. The build-event listener calls this on
     // TeamCity's event dispatch thread, and a blocking HTTP POST (up to 25s on timeout) per webhook
-    // must never stall build processing.
-    private val executor: ExecutorService = Executors.newFixedThreadPool(4) { r ->
-        Thread(r, "teamnotify-webhook").apply { isDaemon = true }
-    }
+    // must never stall build processing. The queue is bounded with a caller-runs policy so a flood
+    // of unresponsive webhooks degrades gracefully (backpressure) instead of growing without limit.
+    private val executor: ExecutorService = ThreadPoolExecutor(
+        4, 4, 0L, TimeUnit.MILLISECONDS,
+        ArrayBlockingQueue(1000),
+        ThreadFactory { r -> Thread(r, "teamnotify-webhook").apply { isDaemon = true } },
+        ThreadPoolExecutor.CallerRunsPolicy()
+    )
 
     override fun destroy() {
         executor.shutdown()
         try {
-            executor.awaitTermination(5, TimeUnit.SECONDS)
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow()
+            }
         } catch (_: InterruptedException) {
+            executor.shutdownNow()
             Thread.currentThread().interrupt()
         }
     }
@@ -60,29 +69,32 @@ class WebhookService(
         showBuildLink: Boolean = true,
         showArtifacts: Boolean = true
     ) {
-        // Build the context and deliver on a background thread so the caller (build-event
-        // listener) is never blocked by webhook I/O.
+        // Build the context on the caller's (build-event) thread so the build state is read
+        // consistently, then deliver only the HTTP request on a background thread so the event
+        // thread is never blocked by webhook I/O.
+        val ctx = try {
+            buildContext(build, message, includeChanges, showBuildLink, showArtifacts)
+        } catch (e: Exception) {
+            LOG.warn("Failed to build webhook notification context for ${redact(url)}: ${e.message}")
+            return
+        }
         executor.submit {
             try {
-                dispatch(url, platform, build, message, includeChanges, authHeaderName, authHeaderValue, showBuildLink, showArtifacts)
+                sendNotification(url, platform, ctx, authHeaderName, authHeaderValue)
             } catch (e: Exception) {
-                LOG.warn("Failed to build/send webhook notification to ${redact(url)}: ${e.message}")
+                LOG.warn("Failed to send webhook notification to ${redact(url)}: ${e.message}")
             }
         }
     }
 
-    private fun dispatch(
-        url: String,
-        platform: WebhookPlatform,
+    private fun buildContext(
         build: SRunningBuild,
         message: String,
         includeChanges: Boolean,
-        authHeaderName: String?,
-        authHeaderValue: String?,
         showBuildLink: Boolean,
         showArtifacts: Boolean
-    ) {
-        val ctx = NotificationContext(
+    ): NotificationContext {
+        return NotificationContext(
             status = when {
                 message.contains("started", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.STARTED
                 message.contains("successful", ignoreCase = true) -> sk.v2.plugins.teamnotify.payloads.NotificationStatus.SUCCESS
@@ -111,7 +123,6 @@ class WebhookService(
             showBuildLink = showBuildLink,
             showArtifacts = showArtifacts
         )
-        sendNotification(url, platform, ctx, authHeaderName, authHeaderValue)
     }
 
     fun sendNotification(url: String, platform: WebhookPlatform, ctx: NotificationContext, authHeaderName: String? = null, authHeaderValue: String? = null) {

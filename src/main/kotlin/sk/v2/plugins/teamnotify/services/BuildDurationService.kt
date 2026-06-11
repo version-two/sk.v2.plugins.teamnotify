@@ -11,7 +11,9 @@ class BuildDurationService(private val sBuildServer: SBuildServer) {
 
     fun getAverageBuildDuration(buildTypeId: String): Long {
         val buildType = sBuildServer.projectManager.findBuildTypeById(buildTypeId) ?: return 0
-        val recent = buildType.getHistory(null, true, true).take(MAX_BUILDS)
+        // getHistory(user, includePersonal, includeCanceled): exclude personal and canceled builds so
+        // the average reflects real, completed builds rather than aborted or developer scratch runs.
+        val recent = buildType.getHistory(null, false, false).take(MAX_BUILDS)
         if (recent.isEmpty()) return 0
         return recent.map { it.duration }.average().toLong()
     }

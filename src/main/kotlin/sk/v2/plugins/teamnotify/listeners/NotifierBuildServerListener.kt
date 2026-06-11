@@ -125,11 +125,15 @@ class NotifierBuildServerListener(
             }
 
             // On Build Fixed / On First Failure
-            // Get the previous finished build for this build type (buildType is non-null here)
+            // Get the previous finished build for this build type (buildType is non-null here).
+            // Restrict to the SAME branch: build history is cross-branch, so without this filter a
+            // green build on `main` would be treated as "fixing" a red build on a feature branch (and
+            // vice versa), producing bogus fixed/first-failure notifications.
             val previousFinishedBuild = buildType.getHistory().firstOrNull { finishedBuild ->
                 finishedBuild.buildId != build.buildId &&
                     !finishedBuild.isPersonal &&
-                    finishedBuild.canceledInfo == null
+                    finishedBuild.canceledInfo == null &&
+                    finishedBuild.branch?.displayName == branchName
             }
 
             if (previousFinishedBuild != null) {

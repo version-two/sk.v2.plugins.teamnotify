@@ -51,7 +51,7 @@
         <strong>Editing of the project settings is disabled</strong><br>
         Reason: Editing of the settings is disabled in the versioned settings configuration. 
         Configure webhooks in your <code>.teamcity/settings.kts</code> file instead.
-        <a href="${pageContext.request.contextPath}/admin/editProject.html?projectId=${projectId}&tab=versionedSettings" style="margin-left: 10px; color: #fff; text-decoration: underline;">View Versioned Settings</a>
+        <a href="${pageContext.request.contextPath}/admin/editProject.html?projectId=${fn:escapeXml(projectId)}&tab=versionedSettings" style="margin-left: 10px; color: #fff; text-decoration: underline;">View Versioned Settings</a>
       </div>
     </div>
   </c:if>
@@ -73,9 +73,9 @@
     <button class="tn-alert-close" onclick="this.parentElement.style.display='none'">&times;</button>
   </div>
 
-  <input type="hidden" id="projectId" value="${projectId}"/>
+  <input type="hidden" id="projectId" value="${fn:escapeXml(projectId)}"/>
   <c:if test="${not empty buildTypeId}">
-    <input type="hidden" id="buildTypeId" value="${buildTypeId}"/>
+    <input type="hidden" id="buildTypeId" value="${fn:escapeXml(buildTypeId)}"/>
   </c:if>
 
   <!-- Add Webhook Form -->
@@ -855,12 +855,22 @@
       info: '<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
     };
     
-    toast.innerHTML = (icons[type] || icons.info) + 
-      '<span style="flex: 1;">' + message + '</span>' +
-      '<button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; padding: 4px;">' +
-        '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>' +
-      '</button>';
-    
+    // Icon and close button are trusted static markup; the message is set as text only so a
+    // server- or error-derived string can never inject HTML/script into the page.
+    const iconSpan = document.createElement('span');
+    iconSpan.style.cssText = 'display: flex; align-items: center;';
+    iconSpan.innerHTML = (icons[type] || icons.info);
+    const msgSpan = document.createElement('span');
+    msgSpan.style.flex = '1';
+    msgSpan.textContent = message;
+    const closeBtn = document.createElement('button');
+    closeBtn.style.cssText = 'background: none; border: none; color: inherit; cursor: pointer; padding: 4px;';
+    closeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>';
+    closeBtn.addEventListener('click', function() { toast.remove(); });
+    toast.appendChild(iconSpan);
+    toast.appendChild(msgSpan);
+    toast.appendChild(closeBtn);
+
     toastContainer.appendChild(toast);
     setTimeout(() => {
       toast.style.animation = 'slideOut 0.3s ease-in';
