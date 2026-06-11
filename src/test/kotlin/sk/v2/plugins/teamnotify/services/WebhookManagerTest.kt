@@ -12,6 +12,7 @@ import org.mockito.ArgumentMatchers.*
 import sk.v2.plugins.teamnotify.model.TeamNotifyProjectSettings
 import sk.v2.plugins.teamnotify.model.WebhookConfiguration
 import sk.v2.plugins.teamnotify.model.WebhookPlatform
+import sk.v2.plugins.teamnotify.model.WebhookSource
 
 class WebhookManagerTest {
 
@@ -121,5 +122,29 @@ class WebhookManagerTest {
         assert(all[0].projectName == "Project One")
         assert(all[0].projectId == "P1")
         assert(all[0].webhook.url == "url1")
+    }
+
+    @Test
+    fun `getInheritedWebhooksWithSourceForProject includes parent webhooks tagged PROJECT and excludes the project's own`() {
+        // The project's own UI webhook must NOT appear (it is shown/edited in the editable list);
+        // a webhook configured on the parent project must appear tagged as inherited (PROJECT).
+        val ownWebhook = WebhookConfiguration("ownUrl", WebhookPlatform.SLACK, onSuccess = true)
+        `when`(projectSettingsManager.getSettings(eq("projectId"), anyString()))
+            .thenReturn(TeamNotifyProjectSettings(mutableListOf(ownWebhook)))
+
+        val parent = mock(SProject::class.java)
+        `when`(parent.projectId).thenReturn("parentId")
+        `when`(parent.parentProject).thenReturn(null)
+        val parentWebhook = WebhookConfiguration("parentUrl", WebhookPlatform.TEAMS, onFailure = true)
+        `when`(projectSettingsManager.getSettings(eq("parentId"), anyString()))
+            .thenReturn(TeamNotifyProjectSettings(mutableListOf(parentWebhook)))
+
+        `when`(project.parentProject).thenReturn(parent)
+
+        val result = webhookManager.getInheritedWebhooksWithSourceForProject(project)
+
+        assert(result.size == 1)
+        assert(result[0].webhook.url == "parentUrl")
+        assert(result[0].source == WebhookSource.PROJECT)
     }
 }

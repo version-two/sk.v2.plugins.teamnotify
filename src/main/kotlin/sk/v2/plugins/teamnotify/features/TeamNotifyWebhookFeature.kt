@@ -16,10 +16,12 @@ class TeamNotifyWebhookFeature(
     override fun getType(): String = "teamnotify.webhook"
     
     override fun getDisplayName(): String = "TeamNotify Webhook"
-    
-    override fun getEditParametersUrl(): String? = 
-        pluginDescriptor.getPluginResourcesPath("editWebhookFeature.jsp")
-    
+
+    // TeamNotify DSL webhooks are configured in versioned settings (.teamcity/settings.kts), not
+    // through a dedicated build-feature edit form. Returning null means TeamCity shows the feature's
+    // raw parameters instead of pointing at a non-existent editWebhookFeature.jsp.
+    override fun getEditParametersUrl(): String? = null
+
     override fun isMultipleFeaturesPerBuildTypeAllowed(): Boolean = true
     
     override fun getParametersProcessor(): PropertiesProcessor? {

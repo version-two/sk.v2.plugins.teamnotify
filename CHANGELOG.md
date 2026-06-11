@@ -34,6 +34,8 @@
 - Corrected the Teams/Office 365 Connector retirement date in the docs to the actual cutoff (May 18–22, 2026) and flagged the legacy `logic.azure.com` host as non-delivering since November 30, 2025.
 - **Slack "View Build" and artifact links now actually render** – they were emitted as legacy attachment action buttons, which Slack silently drops for incoming webhooks, so Slack users got no links at all. The Slack message is now built with Block Kit blocks (kept inside a colored attachment) and the links are real Block Kit URL buttons.
 - **Fixed Slack webhook URL validation** – it accepted a bogus `/workflows/` path that never existed and rejected the real Workflow Builder trigger format `hooks.slack.com/triggers/...`. Now accepts `/services/` (incoming webhooks) and `/triggers/` (Workflow Builder).
+- **The project TeamNotify tab now shows DSL (versioned-settings) and inherited parent-project webhooks** (read-only, with source badges), so it reflects everything that actually fires – previously it listed only the project's own UI webhooks, while the build-configuration tab already showed all sources.
+- **The DSL webhook build feature no longer points at a non-existent edit page** (`editWebhookFeature.jsp`); since DSL webhooks are configured in `.teamcity/settings.kts`, the feature now exposes its raw parameters instead of a broken editor.
 
 ### 🐛 Bug Fixes (admin & UI)
 - **Stalled-build notifications now honor the enabled flag, locally-disabled state, and branch filter**, consistent with the other triggers.

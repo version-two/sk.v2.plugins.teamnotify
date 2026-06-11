@@ -61,6 +61,15 @@ class ProjectWebhookSettingsTab(
         } catch (e: Exception) {
             LOG.warn("Failed to load webhooks for project ${project.externalId}: ${e.message}")
         }
+
+        try {
+            // DSL (versioned settings) webhooks on this project plus webhooks inherited from parent
+            // projects. Shown read-only so the project tab reflects everything that actually fires,
+            // consistent with the build-configuration tab.
+            model["inheritedWebhooks"] = webhookManager.getInheritedWebhooksWithSourceForProject(project)
+        } catch (e: Exception) {
+            LOG.warn("Failed to load inherited webhooks for project ${project.externalId}: ${e.message}")
+        }
     }
 
     override fun isAvailable(request: HttpServletRequest): Boolean {

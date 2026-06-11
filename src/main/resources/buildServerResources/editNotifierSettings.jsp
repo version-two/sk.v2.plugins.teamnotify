@@ -660,8 +660,75 @@
             </c:otherwise>
           </c:choose>
         </div>
-        
-        <div id="emptyState" class="tn-empty-state" style="${(not empty webhooks or not empty webhooksWithSource) ? 'display:none;' : ''}">
+
+        <%-- Read-only: DSL (versioned settings) webhooks on this project and webhooks inherited
+             from parent projects. These fire but are edited elsewhere (settings.kts or the parent
+             project), so they are shown without toggle/delete actions. They live OUTSIDE the
+             #webhooksList div above so the JS that re-renders that list after add/delete/toggle
+             does not wipe them. --%>
+        <c:if test="${not empty inheritedWebhooks}">
+          <div class="tn-inherited-divider">Inherited &amp; versioned-settings webhooks</div>
+          <div class="tn-webhooks-list">
+            <c:forEach var="webhookWithSource" items="${inheritedWebhooks}" varStatus="status">
+              <c:set var="webhook" value="${webhookWithSource.webhook}"/>
+              <c:set var="source" value="${webhookWithSource.source}"/>
+              <div class="tn-webhook-item tn-webhook-inherited ${!webhook.enabled ? 'tn-webhook-disabled' : ''}"
+                   data-webhook-source="${source}">
+                <div class="tn-webhook-platform">
+                  <c:choose>
+                    <c:when test="${webhook.platform == 'SLACK'}">
+                      <svg viewBox="0 0 24 24" class="tn-platform-icon-small"><path fill="#4A154B" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
+                    </c:when>
+                    <c:when test="${webhook.platform == 'TEAMS'}">
+                      <svg viewBox="0 0 16 16" class="tn-platform-icon-small"><path fill="#5059C9" d="M9.186 4.797a2.42 2.42 0 1 0-2.86-2.448h1.178c.929 0 1.682.753 1.682 1.682zm-4.295 7.738h2.613c.929 0 1.682-.753 1.682-1.682V5.58h2.783a.7.7 0 0 1 .682.716v4.294a4.197 4.197 0 0 1-4.093 4.293c-1.618-.04-3-.99-3.667-2.35Zm10.737-9.372a1.674 1.674 0 1 1-3.349 0 1.674 1.674 0 0 1 3.349 0m-2.238 9.488-.12-.002a5.2 5.2 0 0 0 .381-2.07V6.306a1.7 1.7 0 0 0-.15-.725h1.792c.39 0 .707.317.707.707v3.765a2.6 2.6 0 0 1-2.598 2.598z"/><path fill="#5059C9" d="M.682 3.349h6.822c.377 0 .682.305.682.682v6.822a.68.68 0 0 1-.682.682H.682A.68.68 0 0 1 0 10.853V4.03c0-.377.305-.682.682-.682Zm5.206 2.596v-.72h-3.59v.72h1.357V9.66h.87V5.945z"/></svg>
+                    </c:when>
+                    <c:otherwise>
+                      <svg viewBox="0 0 24 24" class="tn-platform-icon-small"><path fill="#5865F2" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                    </c:otherwise>
+                  </c:choose>
+                </div>
+                <div class="tn-webhook-info">
+                  <div class="tn-webhook-url">
+                    <c:choose>
+                      <c:when test="${webhook.platform == 'SLACK'}">Slack Webhook (********)</c:when>
+                      <c:when test="${webhook.platform == 'TEAMS'}">Teams Webhook (********)</c:when>
+                      <c:when test="${webhook.platform == 'DISCORD'}">Discord Webhook (********)</c:when>
+                      <c:otherwise>Webhook (********)</c:otherwise>
+                    </c:choose>
+                    <span class="tn-webhook-source-badge">
+                      <c:choose>
+                        <c:when test="${source == 'PROJECT'}">Inherited from parent project</c:when>
+                        <c:when test="${source == 'DSL'}">From versioned settings</c:when>
+                      </c:choose>
+                    </span>
+                    <c:if test="${!webhook.enabled}">
+                      <span class="tn-webhook-local-badge">Disabled</span>
+                    </c:if>
+                  </div>
+                  <div class="tn-webhook-triggers">
+                    <c:if test="${webhook.onStart}"><span class="tn-trigger-tag">On Start</span></c:if>
+                    <c:if test="${webhook.onSuccess}"><span class="tn-trigger-tag tn-trigger-tag-success">On Success</span></c:if>
+                    <c:if test="${webhook.onFailure}"><span class="tn-trigger-tag tn-trigger-tag-failure">On Failure</span></c:if>
+                    <c:if test="${webhook.onStall}"><span class="tn-trigger-tag tn-trigger-tag-warning">On Stall</span></c:if>
+                    <c:if test="${webhook.onCancel}"><span class="tn-trigger-tag tn-trigger-tag-warning">On Cancel</span></c:if>
+                    <c:if test="${webhook.onFirstFailure}"><span class="tn-trigger-tag tn-trigger-tag-failure">First Failure</span></c:if>
+                    <c:if test="${webhook.onBuildFixed}"><span class="tn-trigger-tag tn-trigger-tag-success">Fixed</span></c:if>
+                    <c:if test="${webhook.buildLongerThan != null}"><span class="tn-trigger-tag tn-trigger-tag-info">&gt; ${webhook.buildLongerThan}s</span></c:if>
+                    <c:if test="${webhook.buildLongerThanAverage}"><span class="tn-trigger-tag tn-trigger-tag-info">&gt; Average</span></c:if>
+                    <c:if test="${not empty webhook.branchFilter}">
+                      <span class="tn-trigger-tag" style="background: #ddd6fe; color: #6b21a8;" title="${fn:escapeXml(webhook.branchFilter)}">Filtered</span>
+                    </c:if>
+                    <c:if test="${not empty webhook.authHeaderName}">
+                      <span class="tn-trigger-tag" style="background: #fef3c7; color: #92400e;">Auth</span>
+                    </c:if>
+                  </div>
+                </div>
+              </div>
+            </c:forEach>
+          </div>
+        </c:if>
+
+        <div id="emptyState" class="tn-empty-state" style="${(not empty webhooks or not empty webhooksWithSource or not empty inheritedWebhooks) ? 'display:none;' : ''}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
             <path d="M13 16h-1v-4h1m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
@@ -1919,6 +1986,17 @@
 .tn-webhook-item.tn-webhook-inherited {
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border-color: #7dd3fc;
+}
+
+.tn-inherited-divider {
+  margin: 18px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 14px;
 }
 
 .tn-webhook-source-badge {

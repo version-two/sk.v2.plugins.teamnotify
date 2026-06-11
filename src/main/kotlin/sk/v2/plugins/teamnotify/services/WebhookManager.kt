@@ -344,4 +344,44 @@ class WebhookManager(
             .filter { !it.isLocallyDisabled && it.webhook.enabled }
             .map { it.webhook }
     }
+
+    // Read-only list of webhooks that apply to this project but are NOT editable on its TeamNotify
+    // tab: the project's own DSL (versioned-settings) webhooks plus every webhook inherited from
+    // parent projects (both UI-stored and DSL). The project's own UI webhooks are shown and edited
+    // separately, so they are excluded here. This lets the project tab surface DSL/inherited webhooks
+    // the way the build-configuration tab already does.
+    fun getInheritedWebhooksWithSourceForProject(project: SProject): List<WebhookWithSource> = synchronized(lock) {
+        val result = mutableListOf<WebhookWithSource>()
+        val seen = mutableSetOf<String>()
+
+        // Don't duplicate the project's own UI webhooks (rendered in the editable list).
+        try {
+            projectSettings(project).webhooks.forEach { seen.add(it.url) }
+        } catch (e: Exception) {
+            // ignore unreadable settings
+        }
+
+        fun add(webhook: WebhookConfiguration, source: WebhookSource) {
+            if (seen.add(webhook.url)) {
+                result.add(WebhookWithSource(webhook = webhook, source = source, isLocallyDisabled = false))
+            }
+        }
+
+        // The project's own DSL-defined webhooks (versioned settings on this project).
+        getDslWebhooksForProject(project).forEach { add(it, WebhookSource.DSL) }
+
+        // Webhooks inherited from parent projects: both UI-stored and DSL.
+        var parent = project.parentProject
+        while (parent != null) {
+            try {
+                projectSettings(parent).webhooks.forEach { add(it, WebhookSource.PROJECT) }
+            } catch (e: Exception) {
+                // ignore unreadable settings
+            }
+            getDslWebhooksForProject(parent).forEach { add(it, WebhookSource.DSL) }
+            parent = parent.parentProject
+        }
+
+        result
+    }
 }
