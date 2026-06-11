@@ -9,8 +9,12 @@ class BuildStallTracker {
     private val LOG = Logger.getInstance(BuildStallTracker::class.java.name)
     private val runningBuilds = ConcurrentHashMap<Long, Long>()
 
+    // Time source, overridable in tests so stall detection can be exercised deterministically
+    // instead of depending on real elapsed wall-clock time.
+    internal var clock: () -> Long = { System.currentTimeMillis() }
+
     fun startTracking(build: SRunningBuild) {
-        runningBuilds[build.buildId] = System.currentTimeMillis()
+        runningBuilds[build.buildId] = clock()
         LOG.info("Started tracking build ${build.buildId}")
     }
 
@@ -20,14 +24,12 @@ class BuildStallTracker {
     }
 
     fun checkForStalledBuilds(stallTimeout: Long, action: (Long) -> Unit) {
-        val now = System.currentTimeMillis()
+        val now = clock()
         val stalledBuilds = mutableListOf<Long>()
-        
+
         // Collect stalled builds first
         for ((buildId, lastActivity) in runningBuilds) {
-            // "stalled" means inactive for at least the timeout; >= (not >) so a 0 ms timeout
-            // always triggers and the boundary doesn't depend on sub-millisecond timing.
-            if (now - lastActivity >= stallTimeout) {
+            if (now - lastActivity > stallTimeout) {
                 stalledBuilds.add(buildId)
             }
         }

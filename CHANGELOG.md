@@ -18,8 +18,8 @@
 - **Fixed validation of new Power Automate URLs** (`{org}.{region}.environment.api.powerplatform.com`) which were previously rejected.
 - URLs containing raw whitespace are now rejected.
 
-#### Stalled-build detection boundary
-- `BuildStallTracker` now treats a build as stalled when it has been inactive for **at least** the timeout (`>=` instead of `>`), fixing a boundary case (and a timing-dependent test) for very short timeouts.
+#### Deterministic stalled-build tests
+- `BuildStallTracker` now uses an overridable time source so stall detection can be tested deterministically instead of depending on real elapsed wall-clock time (the previous test was flaky in faster environments). Production behavior is unchanged.
 
 ### 📋 Technical Details
 - `TeamNotifyProjectSettings.kt`: now holds project webhooks plus per-build-type webhooks and per-build-type locally-disabled URLs in one object; removed `DisabledWebhooksSettings`.

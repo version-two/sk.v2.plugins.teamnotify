@@ -8,10 +8,14 @@ import org.mockito.Mockito.*
 class BuildStallTrackerTest {
 
     private lateinit var buildStallTracker: BuildStallTracker
+    // Controlled clock so stall detection is deterministic and independent of wall-clock timing
+    private var currentTime = 1_000L
 
     @BeforeEach
     fun setUp() {
+        currentTime = 1_000L
         buildStallTracker = BuildStallTracker()
+        buildStallTracker.clock = { currentTime }
     }
 
     @Test
@@ -20,6 +24,7 @@ class BuildStallTrackerTest {
         `when`(build.buildId).thenReturn(1L)
 
         buildStallTracker.startTracking(build)
+        currentTime += 500 // build has now been inactive for 500 ms
 
         // No direct way to assert internal state, but we can check behavior with checkForStalledBuilds
         var stalledBuildId: Long? = null
@@ -36,6 +41,7 @@ class BuildStallTrackerTest {
 
         buildStallTracker.startTracking(build)
         buildStallTracker.stopTracking(build)
+        currentTime += 500
 
         var stalledBuildId: Long? = null
         buildStallTracker.checkForStalledBuilds(0) { buildId ->
@@ -50,9 +56,10 @@ class BuildStallTrackerTest {
         `when`(build.buildId).thenReturn(1L)
 
         buildStallTracker.startTracking(build)
+        currentTime += 500 // exceeds the 0 ms timeout
 
         var triggered = false
-        buildStallTracker.checkForStalledBuilds(0) { buildId ->
+        buildStallTracker.checkForStalledBuilds(0) { _ ->
             triggered = true
         }
         assert(triggered)
@@ -64,9 +71,10 @@ class BuildStallTrackerTest {
         `when`(build.buildId).thenReturn(1L)
 
         buildStallTracker.startTracking(build)
+        currentTime += 500
 
         var triggered = false
-        buildStallTracker.checkForStalledBuilds(Long.MAX_VALUE) { buildId ->
+        buildStallTracker.checkForStalledBuilds(Long.MAX_VALUE) { _ ->
             triggered = true
         }
         assert(!triggered)
