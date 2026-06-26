@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-06-26
+
 ### 🔧 Tooling
 - **Added GitHub Actions CI** – `build.yml` builds and tests on JDK 21 and uploads the plugin zip; `release.yml` publishes a GitHub Release with the zip when a `v*` tag is pushed.
 - Updated docs/examples to TeamCity 2026.1 (current Kotlin DSL imports, removed the obsolete `v2019_2` examples and the long-removed custom `teamNotifyWebhook {}` DSL example), and corrected stale storage/version/retirement notes.
