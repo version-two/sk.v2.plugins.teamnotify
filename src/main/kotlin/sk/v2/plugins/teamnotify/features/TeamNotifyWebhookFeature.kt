@@ -65,7 +65,10 @@ class TeamNotifyWebhookFeature(
         
         val triggerText = if (triggers.isNotEmpty()) triggers.joinToString(", ") else "No triggers"
         
-        return "$platform webhook: $url (Triggers: $triggerText)"
+        val name = params["webhook.name"]?.trim()?.takeIf { it.isNotEmpty() }
+        val prefix = if (name != null) "$name - " else ""
+
+        return "$prefix$platform webhook: $url (Triggers: $triggerText)"
     }
     
     override fun getDefaultParameters(): Map<String, String> {

@@ -28,6 +28,12 @@ class NotifierSettingsController(
     private val sBuildServer: SBuildServer
 ) : BaseController() {
 
+    companion object {
+        // Names are display-only labels; cap them so a pasted blob can't blow up the settings XML
+        // or the webhook list layout.
+        const val MAX_NAME_LENGTH = 100
+    }
+
     fun register(): Unit {
         webControllerManager.registerController("/notifier/settings.html", this)
         webControllerManager.registerController("/notifier/testWebhook.html", this)
@@ -87,6 +93,7 @@ class NotifierSettingsController(
             val action = request.getParameter("action")
             if (action == "add") {
                 val webhookUrl = request.getParameter("webhookUrl")?.trim()
+                val webhookName = request.getParameter("webhookName")?.trim()?.takeIf { it.isNotEmpty() }?.take(MAX_NAME_LENGTH)
                 val platformRaw = request.getParameter("platform")?.trim()?.uppercase()
                 val onSuccess = request.getParameter("onSuccess") != null
                 val onFailure = request.getParameter("onFailure") != null
@@ -134,6 +141,7 @@ class NotifierSettingsController(
                 if (errors.isNotEmpty()) {
                     mv.model["validationErrors"] = errors
                     mv.model["formUrl"] = webhookUrl ?: ""
+                    mv.model["formName"] = webhookName ?: ""
                     mv.model["formPlatform"] = platformRaw ?: "SLACK"
                     mv.model["formOnStart"] = onStart
                     mv.model["formOnSuccess"] = onSuccess
@@ -146,6 +154,7 @@ class NotifierSettingsController(
                         val newWebhook = WebhookConfiguration(
                             url = webhookUrl!!,
                             platform = platform!!,
+                            name = webhookName,
                             onStart = onStart,
                             onSuccess = onSuccess,
                             onFailure = onFailure,
@@ -184,6 +193,7 @@ class NotifierSettingsController(
                         errors += "Failed to save webhook: ${e.message ?: "Unknown error"}"
                         mv.model["validationErrors"] = errors
                         mv.model["formUrl"] = webhookUrl ?: ""
+                    mv.model["formName"] = webhookName ?: ""
                         mv.model["formPlatform"] = platformRaw ?: "SLACK"
                         mv.model["formOnStart"] = onStart
                         mv.model["formOnSuccess"] = onSuccess
@@ -382,6 +392,7 @@ class NotifierSettingsController(
                     """{
                         "index": $index,
                         "platform": "${webhook.platform}",
+                        "name": ${if (webhook.name != null) "\"${jsonEscape(webhook.name)}\"" else "null"},
                         "onStart": ${webhook.onStart},
                         "onSuccess": ${webhook.onSuccess},
                         "onFailure": ${webhook.onFailure},
@@ -587,6 +598,7 @@ class NotifierSettingsController(
                 }
 
                 val webhookUrl = request.getParameter("webhookUrl")?.trim()
+                val webhookName = request.getParameter("webhookName")?.trim()?.takeIf { it.isNotEmpty() }?.take(MAX_NAME_LENGTH)
                 val platformRaw = request.getParameter("platform")?.trim()?.uppercase()
                 val onSuccess = request.getParameter("onSuccess")?.toBoolean() ?: false
                 val onFailure = request.getParameter("onFailure")?.toBoolean() ?: false
@@ -619,6 +631,7 @@ class NotifierSettingsController(
                 val newWebhook = WebhookConfiguration(
                     url = webhookUrl,
                     platform = platform,
+                    name = webhookName,
                     onStart = onStart,
                     onSuccess = onSuccess,
                     onFailure = onFailure,

@@ -9,6 +9,9 @@ enum class WebhookPlatform {
 data class WebhookConfiguration(
     val url: String,
     val platform: WebhookPlatform,
+    // Optional display name shown in the UI lists so several webhooks of the same platform can be
+    // told apart (URLs are always masked). Purely cosmetic: webhook identity is still the URL.
+    val name: String? = null,
     val onStart: Boolean = false,
     val onSuccess: Boolean = false,
     val onFailure: Boolean = false,

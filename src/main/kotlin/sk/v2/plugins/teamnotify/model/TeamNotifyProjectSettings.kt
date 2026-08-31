@@ -103,6 +103,7 @@ data class TeamNotifyProjectSettings(
                     WebhookConfiguration(
                         url = url,
                         platform = platform,
+                        name = webhookElement.getChild("name")?.textTrim?.takeIf { it.isNotEmpty() },
                         enabled = webhookElement.getChild("enabled")?.textTrim?.toBoolean() ?: true,
                         onStart = webhookElement.getChild("onStart")?.textTrim?.toBoolean() ?: false,
                         onSuccess = webhookElement.getChild("onSuccess")?.textTrim?.toBoolean() ?: false,
@@ -131,6 +132,9 @@ data class TeamNotifyProjectSettings(
         val webhookElement = Element("webhook")
         webhookElement.addContent(Element("url").setText(webhook.url))
         webhookElement.addContent(Element("platform").setText(webhook.platform.name))
+        webhook.name?.let {
+            webhookElement.addContent(Element("name").setText(it))
+        }
         webhookElement.addContent(Element("enabled").setText(webhook.enabled.toString()))
         webhookElement.addContent(Element("onStart").setText(webhook.onStart.toString()))
         webhookElement.addContent(Element("onSuccess").setText(webhook.onSuccess.toString()))

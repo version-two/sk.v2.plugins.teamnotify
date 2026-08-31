@@ -108,6 +108,11 @@
                 </c:if>
               </div>
 
+              <!-- Webhook Name -->
+              <c:if test="${not empty webhookInfo.webhook.name}">
+                <div class="tn-webhook-name" title="${fn:escapeXml(webhookInfo.webhook.name)}">${fn:escapeXml(webhookInfo.webhook.name)}</div>
+              </c:if>
+
               <!-- Project Info -->
               <div class="tn-webhook-project">
                 <div class="tn-project-icon">
@@ -702,6 +707,16 @@ async function toggleWebhook(webhookIndex, projectId, buildTypeId, currentStatus
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Webhook Name */
+.tn-webhook-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Project Info */

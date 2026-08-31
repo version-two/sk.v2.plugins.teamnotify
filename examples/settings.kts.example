@@ -30,6 +30,7 @@ project {
             type = "teamnotify.webhook"
             param("webhook.url", "%slack.webhook.critical%")
             param("webhook.platform", "SLACK")
+            param("webhook.name", "Critical alerts")  // Optional label shown in the TeamNotify UI
             param("webhook.enabled", "true")
             param("webhook.onFirstFailure", "true")
             param("webhook.onBuildFixed", "true")

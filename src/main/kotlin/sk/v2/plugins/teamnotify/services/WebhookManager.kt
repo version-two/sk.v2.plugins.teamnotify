@@ -135,6 +135,7 @@ class WebhookManager(
         return WebhookConfiguration(
             url = url,
             platform = platform,
+            name = params["webhook.name"]?.trim()?.takeIf { it.isNotEmpty() },
             enabled = params["webhook.enabled"]?.toBoolean() ?: true,
             onStart = params["webhook.onStart"]?.toBoolean() ?: false,
             onSuccess = params["webhook.onSuccess"]?.toBoolean() ?: false,
