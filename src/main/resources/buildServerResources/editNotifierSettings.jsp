@@ -404,9 +404,6 @@
                   <div class="tn-webhook-info">
                     <div class="tn-webhook-url">
                       <c:choose>
-                        <c:when test="${not empty webhook.name}">
-                          ${fn:escapeXml(webhook.name)}
-                        </c:when>
                         <c:when test="${webhook.platform == 'SLACK'}">
                           Slack Webhook (********)
                         </c:when>
@@ -419,7 +416,7 @@
                         <c:otherwise>
                           Webhook (********)
                         </c:otherwise>
-                      </c:choose>
+                      </c:choose><c:if test="${not empty webhook.name}"> - ${fn:escapeXml(webhook.name)}</c:if>
                       <c:if test="${isInherited}">
                         <span class="tn-webhook-source-badge">
                           <c:choose>
@@ -572,9 +569,6 @@
               <div class="tn-webhook-info">
                 <div class="tn-webhook-url">
                   <c:choose>
-                    <c:when test="${not empty webhook.name}">
-                      ${fn:escapeXml(webhook.name)}
-                    </c:when>
                     <c:when test="${webhook.platform == 'SLACK'}">
                       Slack Webhook (********)
                     </c:when>
@@ -587,7 +581,7 @@
                     <c:otherwise>
                       Webhook (********)
                     </c:otherwise>
-                  </c:choose>
+                  </c:choose><c:if test="${not empty webhook.name}"> - ${fn:escapeXml(webhook.name)}</c:if>
                 </div>
                 
                 <div class="tn-webhook-triggers">
@@ -709,12 +703,11 @@
                 <div class="tn-webhook-info">
                   <div class="tn-webhook-url">
                     <c:choose>
-                      <c:when test="${not empty webhook.name}">${fn:escapeXml(webhook.name)}</c:when>
                       <c:when test="${webhook.platform == 'SLACK'}">Slack Webhook (********)</c:when>
                       <c:when test="${webhook.platform == 'TEAMS'}">Teams Webhook (********)</c:when>
                       <c:when test="${webhook.platform == 'DISCORD'}">Discord Webhook (********)</c:when>
                       <c:otherwise>Webhook (********)</c:otherwise>
-                    </c:choose>
+                    </c:choose><c:if test="${not empty webhook.name}"> - ${fn:escapeXml(webhook.name)}</c:if>
                     <span class="tn-webhook-source-badge">
                       <c:choose>
                         <c:when test="${source == 'PROJECT'}">Inherited from parent project</c:when>
@@ -1333,9 +1326,8 @@
     const html = webhooks.map((webhook, index) => {
       const platformIcon = getPlatformIcon(webhook.platform);
       // webhook.name is user-supplied, so it must be escaped before going into this HTML string.
-      const displayUrl = webhook.name
-        ? escapeHtml(webhook.name)
-        : webhook.platform + ' Webhook (********)';
+      const displayUrl = webhook.platform + ' Webhook (********)'
+        + (webhook.name ? ' - ' + escapeHtml(webhook.name) : '');
 
       const triggers = [];
       if (webhook.onStart) triggers.push('<span class="tn-trigger-tag">On Start</span>');
