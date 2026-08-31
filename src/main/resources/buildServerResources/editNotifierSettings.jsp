@@ -850,7 +850,7 @@
     if (p === 'SLACK') {
       placeholder = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXX';
     } else if (p === 'TEAMS') {
-      placeholder = 'https://{tenant}.webhook.office.com/webhookb2/...';
+      placeholder = 'https://{tenant}.webhook.office.com/webhookb2/... or https://{env}.environment.api.powerplatform.com/...';
     } else if (p === 'DISCORD') {
       placeholder = 'https://discord.com/api/webhooks/{id}/{token}';
     }
@@ -863,7 +863,10 @@
     const p = platformSelect.value;
     let ok = false;
     if (p === 'SLACK') ok = /^https:\/\/hooks\.slack\.com\//.test(val);
-    else if (p === 'TEAMS') ok = /^https:\/\/.*webhook\.office\.com\//.test(val) || /^https:\/\/outlook\.office\.com\//.test(val);
+    else if (p === 'TEAMS') ok = /^https:\/\/[a-z0-9_-]+\.webhook\.office\.com\//i.test(val)
+      || /^https:\/\/outlook\.office\.com\/webhook\//i.test(val)
+      || /^https:\/\/[a-z0-9_-]+\.logic\.azure\.com\//i.test(val)
+      || /^https:\/\/[a-z0-9_.-]+\.environment\.api\.powerplatform\.com/i.test(val);
     else if (p === 'DISCORD') ok = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\//.test(val);
     urlError.style.display = ok || !val ? 'none' : 'block';
     return ok;
