@@ -21,6 +21,7 @@ project {
                 type = "teamnotify.webhook"
                 param("webhook.url", "%env.SLACK_WEBHOOK_URL%")  // Use parameter for security
                 param("webhook.platform", "SLACK")
+                param("webhook.name", "#build-alerts")  // Optional label shown in the TeamNotify UI
                 param("webhook.enabled", "true")
                 
                 // Trigger configuration

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### ✨ Features
+- **Webhooks can now have a name** – an optional label set when adding a webhook (or via the `webhook.name` DSL parameter) is shown instead of the masked `Slack Webhook (********)` placeholder on the project and build-configuration tabs and on the admin overview, so several webhooks of the same platform can be told apart. URLs stay masked; the name is display-only and does not affect webhook identity, inheritance, or delivery.
+
 ## [1.4.0] - 2026-06-26
 
 ### 🔧 Tooling

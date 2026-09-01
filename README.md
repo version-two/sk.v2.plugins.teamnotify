@@ -123,6 +123,7 @@ object MyBuild : BuildType({
             type = "teamnotify.webhook"
             param("webhook.url", "%slack.webhook.url%")  // Never hardcode the URL!
             param("webhook.platform", "SLACK")
+            param("webhook.name", "#build-alerts")  // Optional label shown in the TeamNotify UI
             param("webhook.enabled", "true")
             param("webhook.onFailure", "true")
             param("webhook.onSuccess", "true")

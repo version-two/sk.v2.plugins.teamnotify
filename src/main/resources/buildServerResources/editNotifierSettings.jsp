@@ -132,6 +132,19 @@
           </select>
         </div>
 
+        <!-- Webhook Name -->
+        <div class="tn-form-group tn-form-group-full">
+          <label class="tn-label" for="webhookName">Name (Optional)</label>
+          <input type="text"
+                 id="webhookName"
+                 class="tn-input"
+                 maxlength="100"
+                 placeholder="e.g. #build-alerts (team channel)"
+                 value="${fn:escapeXml(formName)}"
+                 autocomplete="off">
+          <span class="tn-help-text">Shown in the list below so webhooks can be told apart (URLs stay masked).</span>
+        </div>
+
         <!-- Webhook URL -->
         <div class="tn-form-group tn-form-group-full">
           <label class="tn-label" for="webhookUrl">
@@ -403,7 +416,7 @@
                         <c:otherwise>
                           Webhook (********)
                         </c:otherwise>
-                      </c:choose>
+                      </c:choose><c:if test="${not empty webhook.name}"> - ${fn:escapeXml(webhook.name)}</c:if>
                       <c:if test="${isInherited}">
                         <span class="tn-webhook-source-badge">
                           <c:choose>
@@ -568,7 +581,7 @@
                     <c:otherwise>
                       Webhook (********)
                     </c:otherwise>
-                  </c:choose>
+                  </c:choose><c:if test="${not empty webhook.name}"> - ${fn:escapeXml(webhook.name)}</c:if>
                 </div>
                 
                 <div class="tn-webhook-triggers">
@@ -694,7 +707,7 @@
                       <c:when test="${webhook.platform == 'TEAMS'}">Teams Webhook (********)</c:when>
                       <c:when test="${webhook.platform == 'DISCORD'}">Discord Webhook (********)</c:when>
                       <c:otherwise>Webhook (********)</c:otherwise>
-                    </c:choose>
+                    </c:choose><c:if test="${not empty webhook.name}"> - ${fn:escapeXml(webhook.name)}</c:if>
                     <span class="tn-webhook-source-badge">
                       <c:choose>
                         <c:when test="${source == 'PROJECT'}">Inherited from parent project</c:when>
@@ -801,6 +814,7 @@
   const platformRadios = document.querySelectorAll('input[name="platform-radio"]');
   const platformSelect = document.getElementById('platform');
   const urlEl = document.getElementById('webhookUrl');
+  const nameEl = document.getElementById('webhookName');
   const urlError = document.getElementById('urlError');
   const useThreshold = document.getElementById('useBuildLongerThan');
   const thresholdRow = document.getElementById('thresholdRow');
@@ -850,7 +864,7 @@
     if (p === 'SLACK') {
       placeholder = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXX';
     } else if (p === 'TEAMS') {
-      placeholder = 'https://{tenant}.webhook.office.com/webhookb2/...';
+      placeholder = 'https://{tenant}.webhook.office.com/webhookb2/... or https://{env}.environment.api.powerplatform.com/...';
     } else if (p === 'DISCORD') {
       placeholder = 'https://discord.com/api/webhooks/{id}/{token}';
     }
@@ -863,7 +877,10 @@
     const p = platformSelect.value;
     let ok = false;
     if (p === 'SLACK') ok = /^https:\/\/hooks\.slack\.com\//.test(val);
-    else if (p === 'TEAMS') ok = /^https:\/\/.*webhook\.office\.com\//.test(val) || /^https:\/\/outlook\.office\.com\//.test(val);
+    else if (p === 'TEAMS') ok = /^https:\/\/[a-z0-9_-]+\.webhook\.office\.com\//i.test(val)
+      || /^https:\/\/outlook\.office\.com\/webhook\//i.test(val)
+      || /^https:\/\/[a-z0-9_-]+\.logic\.azure\.com\//i.test(val)
+      || /^https:\/\/[a-z0-9_.-]+\.environment\.api\.powerplatform\.com/i.test(val);
     else if (p === 'DISCORD') ok = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\//.test(val);
     urlError.style.display = ok || !val ? 'none' : 'block';
     return ok;
@@ -1043,6 +1060,7 @@
     const params = new URLSearchParams({
       platform: platformSelect.value,
       webhookUrl: urlEl.value.trim(),
+      webhookName: nameEl ? nameEl.value.trim() : '',
       onStart: document.getElementById('onStart').checked,
       onSuccess: document.getElementById('onSuccess').checked,
       onFailure: document.getElementById('onFailure').checked,
@@ -1307,7 +1325,9 @@
   function renderWebhooks(webhooks) {
     const html = webhooks.map((webhook, index) => {
       const platformIcon = getPlatformIcon(webhook.platform);
-      const displayUrl = webhook.platform + ' Webhook (********)';
+      // webhook.name is user-supplied, so it must be escaped before going into this HTML string.
+      const displayUrl = webhook.platform + ' Webhook (********)'
+        + (webhook.name ? ' - ' + escapeHtml(webhook.name) : '');
 
       const triggers = [];
       if (webhook.onStart) triggers.push('<span class="tn-trigger-tag">On Start</span>');
@@ -1337,6 +1357,15 @@
     webhooksList.innerHTML = html;
   }
 
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function getPlatformIcon(platform) {
     const icons = {
       SLACK: '<svg viewBox="0 0 24 24" class="tn-platform-icon-small"><path fill="#4A154B" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>',
@@ -1348,6 +1377,7 @@
 
   function resetForm() {
     urlEl.value = '';
+    if (nameEl) nameEl.value = '';
     document.getElementById('onStart').checked = false;
     document.getElementById('onSuccess').checked = false;
     document.getElementById('onFailure').checked = false;

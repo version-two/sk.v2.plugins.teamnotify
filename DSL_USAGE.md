@@ -19,6 +19,7 @@ buildFeature {
     type = "teamnotify.webhook"
     param("webhook.url", "%env.SLACK_WEBHOOK_URL%")  // Reference parameter
     param("webhook.platform", "SLACK")
+    param("webhook.name", "#build-alerts")  // Optional label shown in the UI
     param("webhook.enabled", "true")
     param("webhook.onFailure", "true")
 }
@@ -201,6 +202,7 @@ All webhook parameters are configured using `param()` inside a `buildFeature` bl
 |-----------|------|----------|---------|-------------|---------|
 | `webhook.url` | String | **Yes** | - | Webhook URL | `https://discord.com/api/webhooks/...` |
 | `webhook.platform` | String | **Yes** | - | Platform: `SLACK`, `TEAMS`, or `DISCORD` | `DISCORD` |
+| `webhook.name` | String | No | `null` | Display name shown in the TeamNotify UI lists (URLs stay masked) | `"#build-alerts"` |
 | `webhook.enabled` | String | No | `"true"` | Enable/disable webhook | `"true"` or `"false"` |
 | `webhook.onStart` | String | No | `"false"` | Trigger on build start | `"true"` or `"false"` |
 | `webhook.onSuccess` | String | No | `"false"` | Trigger on build success | `"true"` or `"false"` |
