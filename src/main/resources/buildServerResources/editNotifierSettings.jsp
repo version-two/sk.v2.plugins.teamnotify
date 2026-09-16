@@ -863,7 +863,7 @@
     const p = platformSelect.value;
     let ok = false;
     if (p === 'SLACK') ok = /^https:\/\/hooks\.slack\.com\//.test(val);
-    else if (p === 'TEAMS') ok = /^https:\/\/.*webhook\.office\.com\//.test(val) || /^https:\/\/outlook\.office\.com\//.test(val);
+    else if (p === 'TEAMS') ok = /^https:\/\/.*webhook\.office\.com\//i.test(val) || /^https:\/\/outlook\.office\.com\/webhook\//i.test(val) || /^https:\/\/[a-z0-9_-]+\.logic\.azure\.com\//i.test(val) || /^https:\/\/[a-z0-9_.-]+\.environment\.api\.powerplatform\.com/i.test(val);
     else if (p === 'DISCORD') ok = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\//.test(val);
     urlError.style.display = ok || !val ? 'none' : 'block';
     return ok;
