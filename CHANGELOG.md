@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### ✨ Features
+- **Copy a webhook to another project from the admin page** – each webhook card has a copy button that opens a project picker (with filter). The copy carries all settings, including URL, triggers, branch filter, authentication and enabled state. Projects whose versioned settings are read-only in the UI are not offered, and a project that already has a webhook with the same URL, or already inherits it from a parent project, is rejected.
+
 ## [1.4.0] - 2026-06-26
 
 ### 🔧 Tooling
