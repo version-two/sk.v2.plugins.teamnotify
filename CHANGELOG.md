@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### ✨ Features
+- **Edit existing webhooks** – each webhook you can delete now also has an edit button that loads its settings into the form (title switches to *Edit Webhook*, with *Save Changes* / *Cancel*). The URL and the auth header value are never sent to the browser: leave them empty to keep the stored values. A stored auth header value is only kept while the URL stays the same. Inherited webhooks are edited in the project they come from.
+
 ## [1.4.0] - 2026-06-26
 
 ### 🔧 Tooling
