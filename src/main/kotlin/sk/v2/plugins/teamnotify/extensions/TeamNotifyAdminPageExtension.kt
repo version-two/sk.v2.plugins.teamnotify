@@ -35,6 +35,7 @@ class TeamNotifyAdminPageExtension(
         val allWebhooks = webhookManager.getAllWebhooks()
         model["allWebhooks"] = allWebhooks
         model["totalWebhooks"] = allWebhooks.size
+        model["copyTargets"] = webhookManager.getEditableProjects()
     }
 
     override fun getGroup(): String {

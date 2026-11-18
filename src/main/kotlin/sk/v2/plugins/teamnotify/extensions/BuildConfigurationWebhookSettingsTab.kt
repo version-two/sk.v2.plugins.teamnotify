@@ -9,6 +9,7 @@ import jetbrains.buildServer.web.openapi.buildType.BuildTypeTab
 import com.intellij.openapi.diagnostic.Logger
 import org.jetbrains.annotations.NotNull
 import sk.v2.plugins.teamnotify.services.WebhookManager
+import sk.v2.plugins.teamnotify.utils.VersionedSettings
 import javax.servlet.http.HttpServletRequest
 
 class BuildConfigurationWebhookSettingsTab(
@@ -37,26 +38,8 @@ class BuildConfigurationWebhookSettingsTab(
         
         // Check if versioned settings are enabled and in read-only mode
         val project = buildType.project
-        val versionedSettingsMode = try {
-            val settingsMethod = project.javaClass.getMethod("isVersionedSettingsEnabled")
-            settingsMethod.invoke(project) as Boolean
-        } catch (e: Exception) {
-            false
-        }
-        
-        val isReadOnly = try {
-            if (versionedSettingsMode) {
-                val editingMethod = project.javaClass.getMethod("isVersionedSettingsAllowUIEditing")
-                !(editingMethod.invoke(project) as Boolean)
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            false
-        }
-        
-        model["versionedSettingsEnabled"] = versionedSettingsMode
-        model["versionedSettingsReadOnly"] = isReadOnly
+        model["versionedSettingsEnabled"] = VersionedSettings.isEnabled(project)
+        model["versionedSettingsReadOnly"] = VersionedSettings.isReadOnly(project)
         
         try {
             // Get all webhooks for this build type including inherited ones with source information

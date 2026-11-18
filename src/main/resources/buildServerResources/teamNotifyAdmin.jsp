@@ -208,6 +208,15 @@
                     </c:otherwise>
                   </c:choose>
                 </button>
+                <button onclick="openCopyDialog(${status.index}, this)"
+                        data-source="${fn:escapeXml(webhookInfo.projectName)}${not empty webhookInfo.buildTypeName ? ' / ' : ''}${fn:escapeXml(webhookInfo.buildTypeName)}"
+                        class="tn-card-action-btn tn-action-copy"
+                        title="Copy webhook to another project">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                  </svg>
+                </button>
                 <button onclick="deleteWebhook(${status.index}, '${fn:escapeXml(webhookInfo.projectId)}', '${fn:escapeXml(webhookInfo.buildTypeId)}')"
                         class="tn-card-action-btn tn-action-delete"
                         title="Delete webhook">
@@ -226,6 +235,30 @@
 
 <!-- Toast Notification Container -->
 <div id="tn-toast-container"></div>
+
+<!-- Copy-to-project dialog -->
+<div id="tn-copy-dialog" class="tn-modal-backdrop" style="display:none;">
+  <div class="tn-modal" role="dialog" aria-modal="true" aria-labelledby="tn-copy-title">
+    <h3 id="tn-copy-title" class="tn-modal-title">Copy webhook to project</h3>
+    <p class="tn-modal-text">
+      Copies the webhook from <strong id="tn-copy-source"></strong> with all its settings
+      (URL, triggers, branch filter, authentication, enabled state) to the selected project.
+    </p>
+    <input type="search" id="tn-copy-filter" name="tn-copy-filter" class="tn-modal-input" placeholder="Filter projects..."
+           role="searchbox" aria-label="Filter projects" autocomplete="off" spellcheck="false"
+           data-bwignore="true" data-1p-ignore="true" data-lpignore="true" data-form-type="other">
+    <select id="tn-copy-target" class="tn-modal-select" size="10">
+      <c:forEach var="targetProject" items="${copyTargets}">
+        <option value="${fn:escapeXml(targetProject.externalId)}">${fn:escapeXml(targetProject.fullName)}</option>
+      </c:forEach>
+    </select>
+    <p class="tn-modal-hint">Projects whose versioned settings are read-only in the UI are not listed.</p>
+    <div class="tn-modal-actions">
+      <button type="button" class="tn-modal-btn tn-modal-btn-secondary" id="tn-copy-cancel">Cancel</button>
+      <button type="button" class="tn-modal-btn tn-modal-btn-primary" id="tn-copy-confirm">Copy</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // Toast notification system
@@ -417,6 +450,87 @@ async function toggleWebhook(webhookIndex, projectId, buildTypeId, currentStatus
     showToast('Error toggling webhook: ' + error.message, 'error');
   }
 }
+
+// Copy webhook to another project - uses index only, URL resolved server-side
+var copySourceIndex = null;
+
+function openCopyDialog(webhookIndex, button) {
+  copySourceIndex = webhookIndex;
+  document.getElementById('tn-copy-source').textContent = button.getAttribute('data-source') || '';
+  var filter = document.getElementById('tn-copy-filter');
+  filter.value = '';
+  filterCopyTargets();
+  document.getElementById('tn-copy-target').selectedIndex = -1;
+  document.getElementById('tn-copy-dialog').style.display = 'flex';
+  filter.focus();
+}
+
+function closeCopyDialog() {
+  document.getElementById('tn-copy-dialog').style.display = 'none';
+  copySourceIndex = null;
+}
+
+function filterCopyTargets() {
+  var term = document.getElementById('tn-copy-filter').value.trim().toLowerCase();
+  var options = document.getElementById('tn-copy-target').options;
+  for (var i = 0; i < options.length; i++) {
+    var matches = !term || options[i].text.toLowerCase().indexOf(term) !== -1;
+    options[i].hidden = !matches;
+    if (!matches && options[i].selected) options[i].selected = false;
+  }
+}
+
+async function confirmCopy() {
+  var target = document.getElementById('tn-copy-target');
+  var option = target.selectedIndex >= 0 ? target.options[target.selectedIndex] : null;
+  if (!option || option.hidden) {
+    showToast('Please select a target project', 'warning');
+    return;
+  }
+
+  var confirmBtn = document.getElementById('tn-copy-confirm');
+  confirmBtn.disabled = true;
+  try {
+    var params = new URLSearchParams();
+    params.set('action', 'copy');
+    params.set('webhookIndex', copySourceIndex);
+    params.set('targetProjectId', option.value);
+    params.set('tc-csrf-token', getCsrfToken());
+
+    var response = await fetch('<c:url value="/admin/teamnotify/api.html"/>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
+    });
+
+    var result = await response.json();
+
+    if (result.success) {
+      closeCopyDialog();
+      showToast('Webhook copied to ' + result.targetProject, 'success');
+      setTimeout(function() { location.reload(); }, 1000);
+    } else {
+      showToast('Failed to copy webhook: ' + (result.error || 'Unknown error'), 'error');
+    }
+  } catch (error) {
+    showToast('Error copying webhook: ' + error.message, 'error');
+  } finally {
+    confirmBtn.disabled = false;
+  }
+}
+
+(function() {
+  var dialog = document.getElementById('tn-copy-dialog');
+  if (!dialog) return;
+  dialog.addEventListener('click', function(e) { if (e.target === dialog) closeCopyDialog(); });
+  document.getElementById('tn-copy-cancel').addEventListener('click', closeCopyDialog);
+  document.getElementById('tn-copy-confirm').addEventListener('click', confirmCopy);
+  document.getElementById('tn-copy-filter').addEventListener('input', filterCopyTargets);
+  document.getElementById('tn-copy-target').addEventListener('dblclick', confirmCopy);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && dialog.style.display !== 'none') closeCopyDialog();
+  });
+})();
 </script>
 
 <style>
@@ -908,6 +1022,133 @@ async function toggleWebhook(webhookIndex, projectId, buildTypeId, currentStatus
 
 .tn-action-delete:hover {
   background: #fecaca;
+}
+
+.tn-action-copy {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.tn-action-copy:hover {
+  background: #e0e7ff;
+}
+
+/* Copy dialog */
+.tn-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10000;
+}
+
+.tn-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 520px;
+  padding: 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.tn-modal * {
+  box-sizing: border-box;
+}
+
+.tn-modal-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.tn-modal-text {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.tn-modal-input,
+.tn-modal-select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.tn-modal-input {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.tn-modal-select {
+  padding: 4px;
+}
+
+.tn-modal-select option {
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.tn-modal-input:focus,
+.tn-modal-select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.tn-modal-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tn-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.tn-modal-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tn-modal-btn-secondary {
+  background: white;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.tn-modal-btn-secondary:hover {
+  background: #f3f4f6;
+}
+
+.tn-modal-btn-primary {
+  background: #6366f1;
+  color: white;
+}
+
+.tn-modal-btn-primary:hover {
+  background: #4f46e5;
+}
+
+.tn-modal-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 /* Toast Notifications */

@@ -8,6 +8,7 @@ import jetbrains.buildServer.web.openapi.WebControllerManager
 import jetbrains.buildServer.web.util.SessionUser
 import org.springframework.web.servlet.ModelAndView
 import sk.v2.plugins.teamnotify.services.WebhookManager
+import sk.v2.plugins.teamnotify.utils.VersionedSettings
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
@@ -45,6 +46,7 @@ class TeamNotifyAdminController(
         
         mv.model["allWebhooks"] = allWebhooks
         mv.model["totalWebhooks"] = allWebhooks.size
+        mv.model["copyTargets"] = webhookManager.getEditableProjects()
         
         return mv
     }
@@ -108,6 +110,46 @@ class TeamNotifyAdminController(
                     response.status = 500
                     val errorMsg = e.message?.let { jsonEscape(it) } ?: "Unknown error"
                     response.writer.write("""{"success":false,"error":"Failed to toggle webhook: $errorMsg"}""")
+                }
+            }
+            "copy" -> {
+                val targetProjectId = request.getParameter("targetProjectId")?.trim()
+                val targetProject = targetProjectId?.takeIf { it.isNotEmpty() }?.let {
+                    sBuildServer.projectManager.findProjectByExternalId(it)
+                }
+                when {
+                    targetProject == null -> {
+                        response.status = 404
+                        response.writer.write("""{"success":false,"error":"Target project not found"}""")
+                    }
+                    VersionedSettings.isReadOnly(targetProject) -> {
+                        response.status = 400
+                        response.writer.write("""{"success":false,"error":"The target project's settings are versioned and read-only in the UI"}""")
+                    }
+                    else -> try {
+                        val targetWebhooks = webhookManager.getWebhooksForEntity(targetProject.externalId, null).toMutableList()
+                        // A copy where the webhook is already inherited sends nothing extra (webhooks are de-duplicated
+                        // by URL, nearest project wins) but would pin the subtree to this copy: later changes to the
+                        // parent's webhook, including disabling or deleting it, would no longer reach it.
+                        val inherited = webhookManager.getInheritedWebhooksWithSourceForProject(targetProject)
+                            .any { it.webhook.url == webhookUrl }
+                        if (targetWebhooks.any { it.url == webhookUrl }) {
+                            response.status = 409
+                            response.writer.write("""{"success":false,"error":"${jsonEscape(targetProject.fullName)} already has this webhook"}""")
+                        } else if (inherited) {
+                            response.status = 409
+                            response.writer.write("""{"success":false,"error":"${jsonEscape(targetProject.fullName)} already gets this webhook from a parent project or its versioned settings"}""")
+                        } else {
+                            // The copy is independent: all settings, including auth header and enabled state.
+                            targetWebhooks.add(targetWebhook.webhook.copy())
+                            webhookManager.saveWebhooksForEntity(targetProject.externalId, null, targetWebhooks)
+                            response.writer.write("""{"success":true,"targetProject":"${jsonEscape(targetProject.fullName)}"}""")
+                        }
+                    } catch (e: Exception) {
+                        response.status = 500
+                        val errorMsg = e.message?.let { jsonEscape(it) } ?: "Unknown error"
+                        response.writer.write("""{"success":false,"error":"Failed to copy webhook: $errorMsg"}""")
+                    }
                 }
             }
             else -> {

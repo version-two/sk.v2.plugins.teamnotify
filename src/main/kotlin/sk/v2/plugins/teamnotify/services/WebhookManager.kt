@@ -9,6 +9,7 @@ import sk.v2.plugins.teamnotify.model.WebhookConfiguration
 import sk.v2.plugins.teamnotify.model.WebhookPlatform
 import sk.v2.plugins.teamnotify.model.WebhookWithSource
 import sk.v2.plugins.teamnotify.model.WebhookSource
+import sk.v2.plugins.teamnotify.utils.VersionedSettings
 import com.intellij.openapi.diagnostic.Logger
 
 data class WebhookWithProjectInfo(
@@ -17,6 +18,12 @@ data class WebhookWithProjectInfo(
     val projectId: String,
     val buildTypeName: String? = null,
     val buildTypeId: String? = null
+)
+
+/** A project webhooks can be copied to from the admin page. */
+data class ProjectRef(
+    val externalId: String,
+    val fullName: String
 )
 
 class WebhookManager(
@@ -274,6 +281,13 @@ class WebhookManager(
 
         allWebhooks
     }
+
+    /** Projects whose webhooks can be edited in the UI, i.e. not read-only through versioned settings. */
+    fun getEditableProjects(): List<ProjectRef> =
+        sBuildServer.projectManager.projects
+            .filterNot { VersionedSettings.isReadOnly(it) }
+            .map { ProjectRef(it.externalId, it.fullName) }
+            .sortedBy { it.fullName.lowercase() }
 
     // Get locally disabled webhook URLs for a build type
     fun getDisabledWebhooksForBuildType(buildType: SBuildType): Set<String> = synchronized(lock) {
