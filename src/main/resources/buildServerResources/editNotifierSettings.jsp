@@ -82,7 +82,7 @@
   <c:if test="${!versionedSettingsReadOnly}">
   <div class="tn-card">
     <div class="tn-card-header">
-      <h3 class="tn-card-title">Add New Webhook</h3>
+      <h3 class="tn-card-title" id="webhookFormTitle">Add New Webhook</h3>
       <button class="tn-help-btn" onclick="document.getElementById('webhookGuides').scrollIntoView({behavior: 'smooth'})">
         <svg viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"/>
@@ -339,6 +339,9 @@
           </svg>
           Add Webhook
         </button>
+        <button type="button" id="cancelEditBtn" class="tn-btn tn-btn-secondary" style="display:none;">
+          Cancel
+        </button>
       </div>
     </div>
   </div>
@@ -515,6 +518,9 @@
                                 </c:choose>
                               </svg>
                             </button>
+                            <button class="tn-webhook-edit" onclick="editWebhook(${status.index})" title="Edit webhook">
+                              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                            </button>
                             <button class="tn-webhook-delete" onclick="deleteWebhook(${status.index})">
                               <svg viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
@@ -646,6 +652,9 @@
                           </c:otherwise>
                         </c:choose>
                       </svg>
+                    </button>
+                    <button class="tn-webhook-edit" onclick="editWebhook(${status.index})" title="Edit webhook">
+                      <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
                     </button>
                     <button class="tn-webhook-delete" onclick="deleteWebhook(${status.index})">
                       <svg viewBox="0 0 20 20" fill="currentColor">
@@ -814,6 +823,14 @@
   const webhooksList = document.getElementById('webhooksList');
   const emptyState = document.getElementById('emptyState');
   const webhookCount = document.getElementById('webhookCount');
+  const formTitle = document.getElementById('webhookFormTitle');
+  const cancelEditBtn = document.getElementById('cancelEditBtn');
+  const authValueEl = document.getElementById('authHeaderValue');
+
+  // Index of the webhook being edited, or null when the form adds a new one
+  let editingIndex = null;
+  const ADD_BTN_HTML = '<svg class="tn-btn-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg> Add Webhook';
+  const SAVE_BTN_HTML = '<svg class="tn-btn-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg> Save Changes';
 
   // CSRF Token
   function getCsrfToken() {
@@ -854,7 +871,7 @@
     } else if (p === 'DISCORD') {
       placeholder = 'https://discord.com/api/webhooks/{id}/{token}';
     }
-    urlEl.placeholder = placeholder;
+    urlEl.placeholder = editingIndex !== null ? 'Leave empty to keep the current URL' : placeholder;
   }
 
   // Validation
@@ -866,6 +883,7 @@
     else if (p === 'TEAMS') ok = /^https:\/\/.*webhook\.office\.com\//.test(val) || /^https:\/\/outlook\.office\.com\//.test(val);
     else if (p === 'DISCORD') ok = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\//.test(val);
     urlError.style.display = ok || !val ? 'none' : 'block';
+    if (!val && editingIndex !== null) return true;
     return ok;
   }
 
@@ -968,6 +986,11 @@
 
   // Test Webhook
   async function testWebhook() {
+    if (!urlEl.value.trim()) {
+      showToast('Enter the webhook URL to test it', 'warning');
+      urlEl.focus();
+      return;
+    }
     if (!validateUrl()) {
       urlEl.focus();
       return;
@@ -1037,8 +1060,9 @@
       return;
     }
     
+    const isEdit = editingIndex !== null;
     addBtn.disabled = true;
-    addBtn.innerHTML = '<span class="tn-spinner"></span> Adding...';
+    addBtn.innerHTML = '<span class="tn-spinner"></span> ' + (isEdit ? 'Saving...' : 'Adding...');
     
     const params = new URLSearchParams({
       platform: platformSelect.value,
@@ -1070,7 +1094,11 @@
     if (useThreshold.checked && thresholdInput.value) {
       params.set('buildLongerThan', thresholdInput.value);
     }
-    
+    if (isEdit) {
+      params.set('action', 'update');
+      params.set('webhookIndex', editingIndex);
+    }
+
     try {
       const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>', {
         method: 'POST',
@@ -1092,18 +1120,84 @@
       const data = await response.json();
 
       if (data.success) {
+        if (isEdit) {
+          // Reload so the server-rendered list (with inherited webhooks and their indices) is current
+          showToast('Webhook updated successfully!', 'success');
+          setTimeout(() => location.reload(), 800);
+          return;
+        }
         showToast('Webhook added successfully!', 'success');
         refreshWebhooksList();
         resetForm();
       } else {
-        showToast('Failed to add webhook: ' + (data.error || 'Unknown error'), 'error');
+        showToast('Failed to ' + (isEdit ? 'update' : 'add') + ' webhook: ' + (data.error || 'Unknown error'), 'error');
       }
     } catch (error) {
-      showToast('Error adding webhook: ' + error.message, 'error');
+      showToast('Error ' + (isEdit ? 'updating' : 'adding') + ' webhook: ' + error.message, 'error');
     } finally {
       addBtn.disabled = false;
-      addBtn.innerHTML = '<svg class="tn-btn-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg> Add Webhook';
+      addBtn.innerHTML = editingIndex !== null ? SAVE_BTN_HTML : ADD_BTN_HTML;
     }
+  }
+
+  function selectPlatform(platform) {
+    platformSelect.value = platform;
+    platformRadios.forEach(r => { r.checked = r.value === platform; });
+    updatePlaceholder();
+    updateAuthVisibility();
+  }
+
+  function setEditMode(index) {
+    editingIndex = index;
+    const editing = index !== null;
+    formTitle.textContent = editing ? 'Edit Webhook' : 'Add New Webhook';
+    addBtn.innerHTML = editing ? SAVE_BTN_HTML : ADD_BTN_HTML;
+    cancelEditBtn.style.display = editing ? '' : 'none';
+    updatePlaceholder();
+    validateUrl();
+  }
+
+  // Edit Webhook - loads the stored settings (without URL and auth secret) into the form
+  window.editWebhook = async function(webhookIndex) {
+    const params = new URLSearchParams({ webhookIndex: webhookIndex });
+    const buildTypeId = document.getElementById('buildTypeId')?.value;
+    if (buildTypeId) {
+      params.set('buildTypeId', buildTypeId);
+    } else {
+      params.set('projectId', document.getElementById('projectId').value);
+    }
+
+    try {
+      const response = await fetch('<c:url value="/notifier/api/webhooks.html"/>?' + params.toString());
+      const data = await response.json();
+      if (!data.success) {
+        showToast('Failed to load webhook: ' + (data.error || 'Unknown error'), 'error');
+        return;
+      }
+      const w = data.webhook;
+
+      resetForm();
+      selectPlatform(w.platform);
+      ['onStart', 'onSuccess', 'onFailure', 'onStall', 'onCancel', 'onFirstFailure', 'onBuildFixed',
+       'buildLongerThanAverage', 'includeChanges', 'showBuildLink', 'showArtifacts']
+        .forEach(id => { document.getElementById(id).checked = !!w[id]; });
+      useThreshold.checked = w.buildLongerThan !== null;
+      thresholdInput.value = w.buildLongerThan !== null ? w.buildLongerThan : '';
+      updateThresholdVisibility();
+      document.getElementById('branchFilter').value = w.branchFilter || '';
+      document.getElementById('authHeaderName').value = w.authHeaderName || '';
+      authValueEl.placeholder = w.hasAuth ? 'Leave empty to keep the current value' : 'Header Value (e.g., Bearer your-token)';
+
+      setEditMode(webhookIndex);
+      formTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      showToast('Error loading webhook: ' + error.message, 'error');
+    }
+  }
+
+  function cancelEdit() {
+    resetForm();
+    setEditMode(null);
   }
 
   // Delete Webhook - uses index, URL resolved server-side
@@ -1325,6 +1419,9 @@
             <div class="tn-webhook-url">` + displayUrl + `</div>
             <div class="tn-webhook-triggers">` + triggers.join('') + `</div>
           </div>
+          <button class="tn-webhook-edit" onclick="editWebhook(` + index + `)" title="Edit webhook">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+          </button>
           <button class="tn-webhook-delete" onclick="deleteWebhook(` + index + `)">
             <svg viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/>
@@ -1359,6 +1456,13 @@
     useThreshold.checked = false;
     thresholdInput.value = '';
     updateThresholdVisibility();
+    document.getElementById('branchFilter').value = '';
+    document.getElementById('authHeaderName').value = '';
+    authValueEl.value = '';
+    authValueEl.placeholder = 'Header Value (e.g., Bearer your-token)';
+    document.getElementById('includeChanges').checked = true;
+    document.getElementById('showBuildLink').checked = true;
+    document.getElementById('showArtifacts').checked = true;
     validateUrl();
   }
 
@@ -1368,6 +1472,7 @@
   thresholdInput.addEventListener('input', validateThreshold);
   testBtn.addEventListener('click', testWebhook);
   addBtn.addEventListener('click', addWebhook);
+  cancelEditBtn.addEventListener('click', cancelEdit);
 
   // Initialize
   updatePlaceholder();
@@ -1925,6 +2030,7 @@
 }
 
 .tn-webhook-toggle,
+.tn-webhook-edit,
 .tn-webhook-delete {
   flex-shrink: 0;
   width: 36px;
@@ -1963,6 +2069,12 @@
   color: #6b7280;
 }
 
+.tn-webhook-edit:hover {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+  color: #4f46e5;
+}
+
 .tn-webhook-delete:hover {
   background: #fee2e2;
   border-color: #fca5a5;
@@ -1970,6 +2082,7 @@
 }
 
 .tn-webhook-toggle svg,
+.tn-webhook-edit svg,
 .tn-webhook-delete svg {
   width: 18px;
   height: 18px;

@@ -330,6 +330,108 @@ class NotifierSettingsController(
         }
     }
     
+    private class EditTarget(
+        val projectId: String?,
+        val buildTypeId: String?,
+        val webhooks: MutableList<WebhookConfiguration>,
+        val position: Int
+    )
+
+    /**
+     * Maps a list index from the settings page to the stored webhook it shows. On a build-configuration page
+     * the index refers to the merged list (inherited + own webhooks), so it is mapped back by URL, as delete
+     * and toggle do. Writes the error response and returns null when the webhook cannot be edited here.
+     */
+    private fun resolveEditTarget(
+        projectId: String?,
+        buildTypeId: String?,
+        webhookIndex: Int?,
+        response: HttpServletResponse
+    ): EditTarget? {
+        fun fail(status: Int, error: String): EditTarget? {
+            response.status = status
+            response.writer.write("""{"success":false,"error":"$error"}""")
+            return null
+        }
+
+        if (!buildTypeId.isNullOrBlank()) {
+            val buildType = sBuildServer.projectManager.findBuildTypeByExternalId(buildTypeId)
+                ?: sBuildServer.projectManager.findBuildTypeById(buildTypeId)
+                ?: return fail(404, "Build configuration not found")
+            val webhooksWithSource = webhookManager.getWebhooksWithSourceForBuildType(buildType)
+            if (webhookIndex == null || webhookIndex !in webhooksWithSource.indices) {
+                return fail(400, "Invalid webhook index")
+            }
+            val target = webhooksWithSource[webhookIndex]
+            if (target.source != WebhookSource.BUILD_TYPE) {
+                return fail(400, "Cannot edit inherited webhook. Go to the parent project to edit it.")
+            }
+            val localWebhooks = webhookManager.getWebhooksForEntity(null, buildTypeId).toMutableList()
+            val position = localWebhooks.indexOfFirst { it.url == target.webhook.url }
+            if (position == -1) {
+                return fail(404, "Webhook not found in local configuration")
+            }
+            return EditTarget(null, buildTypeId, localWebhooks, position)
+        }
+
+        val webhooks = webhookManager.getWebhooksForEntity(projectId, null).toMutableList()
+        if (webhookIndex == null || webhookIndex !in webhooks.indices) {
+            return fail(400, "Invalid webhook index")
+        }
+        return EditTarget(projectId, null, webhooks, webhookIndex)
+    }
+
+    private fun parsePlatform(raw: String?): WebhookPlatform? =
+        WebhookPlatform.values().firstOrNull { it.name == raw?.trim()?.uppercase() }
+
+    /** Reads the webhook settings form posted by the settings page (API variant: booleans as "true"/"false"). */
+    private fun readWebhookForm(request: HttpServletRequest, url: String, platform: WebhookPlatform): WebhookConfiguration {
+        fun flag(name: String, default: Boolean = false) = request.getParameter(name)?.toBoolean() ?: default
+        fun text(name: String) = request.getParameter(name)?.trim()?.takeIf { it.isNotEmpty() }
+
+        return WebhookConfiguration(
+            url = url,
+            platform = platform,
+            onStart = flag("onStart"),
+            onSuccess = flag("onSuccess"),
+            onFailure = flag("onFailure"),
+            onStall = flag("onStall"),
+            onCancel = flag("onCancel"),
+            buildLongerThan = text("buildLongerThan")?.toIntOrNull(),
+            buildLongerThanAverage = flag("buildLongerThanAverage"),
+            onFirstFailure = flag("onFirstFailure"),
+            onBuildFixed = flag("onBuildFixed"),
+            includeChanges = flag("includeChanges", default = true),
+            showBuildLink = flag("showBuildLink", default = true),
+            showArtifacts = flag("showArtifacts", default = true),
+            branchFilter = text("branchFilter"),
+            authHeaderName = text("authHeaderName"),
+            authHeaderValue = text("authHeaderValue")
+        )
+    }
+
+    /** JSON for the settings page. Never includes the webhook URL or the auth header value. */
+    private fun webhookToJson(index: Int, webhook: WebhookConfiguration): String = """{
+                        "index": $index,
+                        "platform": "${webhook.platform}",
+                        "onStart": ${webhook.onStart},
+                        "onSuccess": ${webhook.onSuccess},
+                        "onFailure": ${webhook.onFailure},
+                        "onStall": ${webhook.onStall},
+                        "onCancel": ${webhook.onCancel},
+                        "buildLongerThan": ${webhook.buildLongerThan ?: "null"},
+                        "buildLongerThanAverage": ${webhook.buildLongerThanAverage},
+                        "onFirstFailure": ${webhook.onFirstFailure},
+                        "onBuildFixed": ${webhook.onBuildFixed},
+                        "includeChanges": ${webhook.includeChanges},
+                        "showBuildLink": ${webhook.showBuildLink},
+                        "showArtifacts": ${webhook.showArtifacts},
+                        "branchFilter": ${if (webhook.branchFilter != null) "\"${jsonEscape(webhook.branchFilter)}\"" else "null"},
+                        "authHeaderName": ${if (!webhook.authHeaderName.isNullOrBlank()) "\"${jsonEscape(webhook.authHeaderName)}\"" else "null"},
+                        "hasAuth": ${!webhook.authHeaderName.isNullOrBlank() && !webhook.authHeaderValue.isNullOrBlank()},
+                        "enabled": ${webhook.enabled}
+                    }"""
+
     private fun handleApiRequest(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
         response.contentType = "application/json; charset=utf-8"
         
@@ -377,31 +479,63 @@ class NotifierSettingsController(
 
         when (request.method) {
             "GET" -> {
+                val singleIndex = request.getParameter("webhookIndex")
+                if (singleIndex != null) {
+                    val target = resolveEditTarget(projectId, buildTypeId, singleIndex.toIntOrNull(), response) ?: return null
+                    val webhookJson = webhookToJson(target.position, target.webhooks[target.position])
+                    response.writer.write("""{"success":true,"webhook":$webhookJson}""")
+                    return null
+                }
                 val webhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId)
-                val webhooksJson = webhooks.mapIndexed { index, webhook ->
-                    """{
-                        "index": $index,
-                        "platform": "${webhook.platform}",
-                        "onStart": ${webhook.onStart},
-                        "onSuccess": ${webhook.onSuccess},
-                        "onFailure": ${webhook.onFailure},
-                        "onStall": ${webhook.onStall},
-                        "buildLongerThan": ${webhook.buildLongerThan ?: "null"},
-                        "buildLongerThanAverage": ${webhook.buildLongerThanAverage},
-                        "onFirstFailure": ${webhook.onFirstFailure},
-                        "onBuildFixed": ${webhook.onBuildFixed},
-                        "includeChanges": ${webhook.includeChanges},
-                        "showBuildLink": ${webhook.showBuildLink},
-                        "showArtifacts": ${webhook.showArtifacts},
-                        "branchFilter": ${if (webhook.branchFilter != null) "\"${jsonEscape(webhook.branchFilter)}\"" else "null"},
-                        "hasAuth": ${!webhook.authHeaderName.isNullOrBlank() && !webhook.authHeaderValue.isNullOrBlank()},
-                        "enabled": ${webhook.enabled}
-                    }"""
-                }.joinToString(",")
+                val webhooksJson = webhooks.mapIndexed { index, webhook -> webhookToJson(index, webhook) }.joinToString(",")
                 response.writer.write("""{"success":true,"webhooks":[${webhooksJson}]}""")
             }
             "POST" -> {
                 val action = request.getParameter("action")
+                if (action == "update") {
+                    val target = resolveEditTarget(projectId, buildTypeId, request.getParameter("webhookIndex")?.toIntOrNull(), response)
+                        ?: return null
+                    val existing = target.webhooks[target.position]
+
+                    // The URL and the auth header value are never sent to the browser, so an empty field means "keep".
+                    val newUrl = request.getParameter("webhookUrl")?.trim()?.takeIf { it.isNotEmpty() } ?: existing.url
+                    val platform = parsePlatform(request.getParameter("platform"))
+                    if (platform == null || !isValidWebhookUrl(platform, newUrl)) {
+                        response.status = 400
+                        response.writer.write("""{"success":false,"error":"Invalid webhook URL or platform"}""")
+                        return null
+                    }
+                    val urlChanged = newUrl != existing.url
+                    if (urlChanged && target.webhooks.withIndex().any { (i, w) -> i != target.position && w.url == newUrl }) {
+                        response.status = 400
+                        response.writer.write("""{"success":false,"error":"Another webhook with this URL already exists"}""")
+                        return null
+                    }
+
+                    val form = readWebhookForm(request, newUrl, platform)
+                    // A stored secret only stays with the URL it was entered for.
+                    val authHeaderValue = when {
+                        form.authHeaderName == null -> null
+                        form.authHeaderValue != null -> form.authHeaderValue
+                        urlChanged -> {
+                            response.status = 400
+                            response.writer.write("""{"success":false,"error":"Re-enter the authentication header value when changing the webhook URL"}""")
+                            return null
+                        }
+                        else -> existing.authHeaderValue
+                    }
+
+                    try {
+                        target.webhooks[target.position] = form.copy(authHeaderValue = authHeaderValue, enabled = existing.enabled)
+                        webhookManager.saveWebhooksForEntity(target.projectId, target.buildTypeId, target.webhooks)
+                        response.writer.write("""{"success":true,"message":"Webhook updated successfully"}""")
+                    } catch (e: Exception) {
+                        response.status = 500
+                        val errorMsg = e.message?.replace("\"", "\\\"") ?: "Unknown error"
+                        response.writer.write("""{"success":false,"error":"Failed to update webhook: $errorMsg"}""")
+                    }
+                    return null
+                }
                 if (action == "delete") {
                     val webhookIndexStr = request.getParameter("webhookIndex")
                     val webhookIndex = webhookIndexStr?.toIntOrNull()
@@ -587,54 +721,15 @@ class NotifierSettingsController(
                 }
 
                 val webhookUrl = request.getParameter("webhookUrl")?.trim()
-                val platformRaw = request.getParameter("platform")?.trim()?.uppercase()
-                val onSuccess = request.getParameter("onSuccess")?.toBoolean() ?: false
-                val onFailure = request.getParameter("onFailure")?.toBoolean() ?: false
-                val onStall = request.getParameter("onStall")?.toBoolean() ?: false
-                val onCancel = request.getParameter("onCancel")?.toBoolean() ?: false
-                val buildLongerThan = request.getParameter("buildLongerThan")?.trim()?.takeIf { it.isNotEmpty() }?.toIntOrNull()
-                val buildLongerThanAverage = request.getParameter("buildLongerThanAverage")?.toBoolean() ?: false
-                val onFirstFailure = request.getParameter("onFirstFailure")?.toBoolean() ?: false
-                val onBuildFixed = request.getParameter("onBuildFixed")?.toBoolean() ?: false
-                val onStart = request.getParameter("onStart")?.toBoolean() ?: false
-                val includeChanges = request.getParameter("includeChanges")?.toBoolean() ?: true
-                val showBuildLink = request.getParameter("showBuildLink")?.toBoolean() ?: true
-                val showArtifacts = request.getParameter("showArtifacts")?.toBoolean() ?: true
-                val branchFilter = request.getParameter("branchFilter")?.trim()?.takeIf { it.isNotEmpty() }
-                val authHeaderName = request.getParameter("authHeaderName")?.trim()?.takeIf { it.isNotEmpty() }
-                val authHeaderValue = request.getParameter("authHeaderValue")?.trim()?.takeIf { it.isNotEmpty() }
+                val platform = parsePlatform(request.getParameter("platform"))
 
-                val platform = try {
-                    WebhookPlatform.valueOf(platformRaw ?: "")
-                } catch (e: Exception) {
-                    null
-                }
-                
                 if (webhookUrl.isNullOrBlank() || platform == null || !isValidWebhookUrl(platform, webhookUrl)) {
                     response.status = 400
                     response.writer.write("""{"success":false,"error":"Invalid webhook URL or platform"}""")
                     return null
                 }
-                
-                val newWebhook = WebhookConfiguration(
-                    url = webhookUrl,
-                    platform = platform,
-                    onStart = onStart,
-                    onSuccess = onSuccess,
-                    onFailure = onFailure,
-                    onStall = onStall,
-                    onCancel = onCancel,
-                    buildLongerThan = buildLongerThan,
-                    buildLongerThanAverage = buildLongerThanAverage,
-                    onFirstFailure = onFirstFailure,
-                    onBuildFixed = onBuildFixed,
-                    includeChanges = includeChanges,
-                    showBuildLink = showBuildLink,
-                    showArtifacts = showArtifacts,
-                    branchFilter = branchFilter,
-                    authHeaderName = authHeaderName,
-                    authHeaderValue = authHeaderValue
-                )
+
+                val newWebhook = readWebhookForm(request, webhookUrl, platform)
 
                 try {
                     val existingWebhooks = webhookManager.getWebhooksForEntity(projectId, buildTypeId).toMutableList()
