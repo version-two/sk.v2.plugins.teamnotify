@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### 🐛 Fixes
+- **Teams Workflows (Power Automate) URLs are accepted in the settings form** – the client-side check only allowed the retired `*.webhook.office.com` / `outlook.office.com` connector URLs, so `*.environment.api.powerplatform.com` and `*.logic.azure.com` URLs were rejected with "Please enter a valid webhook URL for the selected platform" before reaching the server, which already accepted them. The Teams URL placeholder now shows a Power Automate example.
+
 ## [1.4.0] - 2026-06-26
 
 ### 🔧 Tooling
